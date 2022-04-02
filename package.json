@@ -1,0 +1,15 @@
+{
+  "name": "conious",
+  "version": "0.0.2",
+  "main": "conious/index.js",
+  "scripts": {
+    "test": "jest test",
+    "test-file": "jest test --findRelatedTests test/tests/base-routing.test.js"
+  },
+  "author": "NIGVI",
+  "devDependencies": {
+    "eslint": "^8.10.0",
+    "jest": "^27.5.1",
+    "supertest": "^6.2.2"
+  }
+}
