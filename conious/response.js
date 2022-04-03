@@ -78,24 +78,37 @@ class Response {
 
 	send(req, res, result, settings, finish) {
 
-		if (typeof result === 'string') {
-			this.#setContentType(res, settings)
-			res.end(result)
-			finish()
-			return
+		let err
+		try {
+			if (typeof result === 'string') {
+				this.#setContentType(res, settings)
+				res.end(result)
+				finish()
+				return
+			}
+	
+			if (result instanceof Readable) {
+				return this.stream(req, res, result, settings, finish)
+			}
+	
+			if (result instanceof ResponseFunction) {
+				return result.send(req, res, settings, finish, this.send.bind(this))
+			}
+
+			if (settings.output === 'json' && typeof result === 'object' && result !== null) {
+				this.#setContentType(res, settings)
+				res.end(JSON.stringify(result))
+				finish()
+				return
+			}
+	
+	
+			err = new Error(`Response type error. Type: ${ typeof result }. Handler result: ${ result }`)
+			this.errorHandler({req, res, err})
+		} catch (error) {
+			err = error
+			this.errorHandler({req, res, err})
 		}
-
-		if (result instanceof Readable) {
-			return this.stream(req, res, result, settings, finish)
-		}
-
-		if (result instanceof ResponseFunction) {
-			return result.send(req, res, settings, finish, this.send.bind(this))
-		}
-
-
-		const err = new Error(`Response type error. Type: ${ typeof result }. Handler result: ${ result }`)
-		this.errorHandler({req, res, err})
 		this.getResponseFunction('code500', { req, res, err })
 			.send(req, res, settings, finish, this.send.bind(this))
 	}

@@ -100,6 +100,7 @@ class Conious extends RoutesSetter {
 				body: { raw: null, json: null, form: null }
 			}
 			const send = this.response.getResponseFunction.bind(this.response)
+			const originalURL = req.url
 
 			if (settingFromParent) {
 				url = settingFromParent.url
@@ -142,7 +143,15 @@ class Conious extends RoutesSetter {
 						return pendingOfTheEnd
 					}
 
-					const middlewareArg = { req, res, next, send, env: this.env }
+					const middlewareArg = {
+						req,
+						res,
+						next,
+						send,
+						env: this.env,
+						url,
+						originalURL
+					}
 	
 					const middlewarePromise = middleware.handler(middlewareArg)
 					const waiting = {
@@ -201,9 +210,6 @@ class Conious extends RoutesSetter {
 									Object.entries(
 										regexpResult.groups
 									).map(el => {
-										// if (el[1] === null) {
-										// 	return [el[0], null]
-										// }
 										return [el[0], decodeURI(el[1])]
 									})
 								)
@@ -283,7 +289,11 @@ class Conious extends RoutesSetter {
 									params: params,
 									body: body,
 									send: send,
-									env: this.env
+									env: this.env,
+									originalURL,
+									url,
+									req,
+									res
 								}
 
 								if (controller.cache.innerMode) {
