@@ -4,7 +4,7 @@
   "main": "conious/index.js",
   "scripts": {
     "test": "jest test",
-    "test-file": "jest test --findRelatedTests test/tests/base-routing.test.js"
+    "test-file": "jest test --findRelatedTests test/tests/base-logic/base-routing.test.js"
   },
   "author": "NIGVI",
   "devDependencies": {

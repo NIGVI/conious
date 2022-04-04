@@ -1,8 +1,8 @@
 /* eslint-env jest */
 
-const base = require('../server-entry-point')
+const base = require('../../server-entry-point')
 const supertest = require('supertest')
-const { setRequest } = require('../set-request.js')
+const { setRequest } = require('../../set-request.js')
 
 let serverOnlyOptions
 let serverShort
@@ -38,12 +38,6 @@ function testForBaseRouting(msg, request) {
 
 		describe('Проверка Content-Type при ручном управлении', () => {
 			test('Тесты не написаны', (done) => done(new Error('Тесты не написаны')))
-			// test('GET /', setRequest(request, '/', {
-			// 	file: 'files/main.html',
-			// 	headers: [
-			// 		['Content-Type', 'text/html; charset=UTF-8']
-			// 	]
-			// }))
 		})
 
 	})

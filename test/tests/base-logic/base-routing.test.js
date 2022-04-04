@@ -1,34 +1,45 @@
 /* eslint-env jest */
 
-const base = require('../server-entry-point')
+const base = require('../../server-entry-point')
 const supertest = require('supertest')
-const { setRequest } = require('../set-request.js')
+const { setRequest } = require('../../set-request.js')
 
-let serverOnlyOptions
-let serverShort
-let agentOnlyOptions
-let agentShort
+let serverOnlyOptions, serverShort, serverAllPath
+let agentOnlyOptions, agentShort, agentAllPath
 let requestOnlyOptions = () => agentOnlyOptions
 let requestShort = () => agentShort
+let requestAllPath = () => agentAllPath
 
 
 beforeAll(async () => {
-	serverOnlyOptions = await base('base-routing_only-options.js')
-	serverShort = await base('base-routing_short.js')
+	serverOnlyOptions = await base('base-logic/base-routing/base-routing_only-options.js')
+	serverShort = await base('base-logic/base-routing/base-routing_short.js')
+	serverAllPath = await base('base-logic/base-routing/base-routing_all-path.js')
 
 	agentOnlyOptions = supertest.agent(serverOnlyOptions)
 	agentShort = supertest.agent(serverShort)
+	agentAllPath = supertest.agent(serverAllPath)
 })
 afterAll(async () => {
 	serverOnlyOptions.close()
 	serverShort.close()
+	serverAllPath.close()
 })
 
 
 testForBaseRouting('Базовый роутинг только через опции', requestOnlyOptions)
 testForBaseRouting('Базовый роутинг только сокращенный синтаксис', requestShort)
 
+describe('Путь /** как путь который подходит для всех страниц', () => {
 
+	test('GET /', setRequest(requestAllPath, '/', 'On any path'))
+	test('GET /path', setRequest(requestAllPath, '/path', 'On any path'))
+	test('GET /path/to', setRequest(requestAllPath, '/path/to', 'On any path'))
+
+	test('GET /path-post', setRequest(requestAllPath, '/path-post', 'postfix'))
+	test('GET /path/to-post', setRequest(requestAllPath, '/path/to-post', 'postfix'))
+	test('GET /path/to/end', setRequest(requestAllPath, '/path/to/end', '/**/end path'))
+})
 
 
 function testForBaseRouting(msg, request) {
@@ -205,41 +216,6 @@ function testForBaseRouting(msg, request) {
 				test('GET /postfix-with-noname-regexp/Привет-post', setRequest(request, '/postfix-with-noname-regexp/Привет-post', 404)) // only english
 				test('GET /postfix-with-noname-regexp/&-=+&-post', setRequest(request, '/postfix-with-noname-regexp/&-=+&-post', 404))
 				test('GET /postfix-with-noname-regexp/&ывау*-post', setRequest(request, '/postfix-with-noname-regexp/&ывау*-post', 404))
-			})
-
-			describe('Путь /** как путь который подходит для всех страниц', () => {
-				test('GET /**', (done) => {
-					base('base-routing_all-path.js').then(server => {
-						const agent = supertest.agent(server)
-						let countEndTest = 0
-						const paths = [
-							'/',
-							'/path',
-							'/path/to'
-						]
-						const endTest = (err) => {
-							if (err) {
-								done(err)
-							}
-							if (++countEndTest === paths.length) {
-								done()
-							}
-						}
-
-						for (const path of paths) {
-							setRequest(() => agent, path, 'On any path')(endTest)
-						}
-
-						server.close()
-					})
-				})
-
-				test('GET /**-post', (done) => {
-					done(new Error('Тесты не написаны'))
-				})
-				test('GET /**/end', (done) => {
-					done(new Error('Тесты не написаны'))
-				})
 			})
 
 			describe('Знак \\ в пути для исключения спецсимволов', () => {

@@ -1,8 +1,8 @@
 /* eslint-env jest */
 
-const base = require('../server-entry-point')
+const base = require('../../server-entry-point')
 const supertest = require('supertest')
-const { setRequest } = require('../set-request.js')
+const { setRequest } = require('../../set-request.js')
 
 let serverOnlyOptions
 let serverShort

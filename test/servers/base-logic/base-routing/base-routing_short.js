@@ -2,7 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
-const Conious = require('../../conious')
+const Conious = require('../../../../conious')
 
 
 module.exports = async (server) => {
@@ -18,15 +18,11 @@ module.exports = async (server) => {
 	}
 	const app = new Conious(server, options)
 
-	setTimeout(() => {
-		console.log(app)
-	}, 5000);
-
 	// Обычные маршруты
 	app.set('/', () => 'main page')
 	app.set('/about', () => 'about')
 	app.set('/запрос на другом языке', () => 'запрос на другом языке')
-	app.set('/files/css', () => fs.createReadStream(path.resolve(__dirname, 'static', 'style.css')))
+	app.set('/files/css', () => fs.createReadStream(path.resolve(__dirname, '..', '..', 'static', 'style.css')))
 
 	// Проверка объединенных путей по /several-{ current (path|option)} и /несколько-{ текущий (путей|вариантов)}
 	app.set('/several-{ current (path|option)}', ({ paths }) => {
@@ -88,5 +84,5 @@ module.exports = async (server) => {
 	// Асинхронные функции
 	app.set('/async/', async () => 'main page')
 	app.set('/async/about', async () => 'about')
-	app.set('/async/files/css', async () => fs.createReadStream(path.resolve(__dirname, 'static', 'style.css')))
+	app.set('/async/files/css', async () => fs.createReadStream(path.resolve(__dirname, '..', '..', 'static', 'style.css')))
 }
