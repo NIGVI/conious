@@ -88,6 +88,7 @@ class Response {
 			}
 	
 			if (result instanceof Readable) {
+				this.#setContentType(res, settings)
 				return this.stream(req, res, result, settings, finish)
 			}
 	
@@ -115,10 +116,6 @@ class Response {
 
 
 	stream(req, res, stream, settings, finish) {
-		stream.once('data', () => {
-			res.statusCode = 200
-			this.#setContentType(res, settings)
-		})
 
 		stream.pipe(res)
 

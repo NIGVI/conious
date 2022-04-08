@@ -96,8 +96,8 @@ class StaticController {
 				addresses.push(addressPath)
 				continue
 			}
-			const [ filePathsOfDir, dirPaths, addressesOfDir ] = await this.#getStaticPath(filePath, addressPath)
-			dirPaths.push(...dirPaths)
+			const [ filePathsOfDir, dirPathsOfDir, addressesOfDir ] = await this.#getStaticPath(filePath, addressPath)
+			dirPaths.push(...dirPathsOfDir)
 			filePaths.push(...filePathsOfDir)
 			addresses.push(...addressesOfDir)
 		}
