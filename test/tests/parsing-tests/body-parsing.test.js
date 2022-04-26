@@ -40,3 +40,36 @@ function testForBaseRouting(msg, request) {
 	})
 }
 
+const typeScheme1 = {
+	'str': 'string',
+	'num': 'number'
+}
+const typeScheme2 = {
+	'data': 'Тут функция которая сделает new Data(value), но только с числом'
+}
+const typeScheme3 = {
+	'name': 'string',
+	'?surname': 'string',
+	'age': 'number',
+	'skill': [
+		[true, 'HTML'], // отображает только если есть
+		[true, 'CSS'],
+		[true, 'JavaScript'],
+		[true, 'NodeJS'],
+		[false, 'Docker'], // опциональный
+		[false, 'другой навык']
+	]
+}
+const typeScheme4 = {
+	'name': 'string',
+	'?surname': 'string',
+	'age': 'number',
+	'?skill': [ // объект сам не обязательный
+		[true, 'HTML'], // если в нем что то не соответствует не отображается весь
+		[true, 'CSS'],
+		[true, 'JavaScript'],
+		[true, 'NodeJS'],
+		[false, 'Docker'],
+		[false, 'другой навык']
+	]
+}
