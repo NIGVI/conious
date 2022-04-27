@@ -23,7 +23,7 @@
 
 const fs = require('fs')
 
-const { getBodySetting, getParamsSetting } = require('./handling-external-data/scheme-generator.js')
+const { getBodySetting, getParamsSetting } = require('./scheme/scheme-generator.js')
 const { testOnRegExp, serializeToRegExp } = require('./regexp.js')
 
 const minute = 1000 * 60

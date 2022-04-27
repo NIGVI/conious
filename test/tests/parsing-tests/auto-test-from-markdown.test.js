@@ -6,8 +6,7 @@ const { Conious } = require('../../../conious/index.js')
 const { setRequest } = require('../../set-request.js')
 const { getTestsSchemeSync } = require('../../scheme-syntax/get-tests-scheme.js')
 
-let schemes = [getTestsSchemeSync()[0]]
-
+const schemes = getTestsSchemeSync()
 
 for (const scheme of schemes) {
 
@@ -16,17 +15,6 @@ for (const scheme of schemes) {
   const agent = supertest(server)
   const request = () => agent
   const app = new Conious(server)
-
-  // app.entry(async ({ req, next }) => {
-  //   let body = ''
-  //   for await (const chank of req) {
-  //     body += chank
-  //   }
-  //   setTimeout(() => {
-  //     console.log(req.url, req.headers, typeof body, body)
-  //   }, 2000)
-  //   next()
-  // })
 
   app.get('/json/parse', {
     body: {
@@ -88,7 +76,6 @@ for (const scheme of schemes) {
       return JSON.stringify(sortingParams(body), null, 2)
     }
   })
-  
   // end server
 
 
@@ -158,7 +145,7 @@ for (const scheme of schemes) {
           }
           test(
             `Тест парсинга params в режиме parse №${ i }`,
-            setRequest(request, schemeTest.url.replace('/path', '/params/params'), parseOptions)
+            setRequest(request, schemeTest.url.replace('/path', '/params/parse'), parseOptions)
           )
         }
       })

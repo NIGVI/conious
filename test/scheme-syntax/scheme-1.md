@@ -95,7 +95,8 @@ const input = {
   age: 20,
 }
 const parseMode = {
-  name: 'Nikita'
+  name: 'Nikita',
+  age: 20
 }
 ```
 
@@ -156,6 +157,26 @@ const schemeMode = {
 const parseMode = schemeMode
 ```
 
+```js
+const url = '/path?name=Nikita&surname=Ziuzin&age=20.'
+const schemeMode = {
+  name: 'Nikita',
+  surname: 'Ziuzin',
+  age: 20
+}
+const parseMode = schemeMode
+```
+
+```js
+const url = '/path?name=Nikita&surname=Ziuzin&age=.3'
+const schemeMode = {
+  name: 'Nikita',
+  surname: 'Ziuzin',
+  age: 0.3
+}
+const parseMode = schemeMode
+```
+
 Falsies:
 
 ```js
@@ -168,30 +189,6 @@ const parseMode = {
 
 ```js
 const url = '/path?name=Nikita&surname=Ziuzin&age=word'
-const parseMode = {
-  name: 'Nikita',
-  surname: 'Ziuzin'
-}
-```
-
-```js
-const url = '/path?name=Nikita&Surname=Ziuzin&age=20'
-const parseMode = {
-  name: 'Nikita',
-  surname: 'Ziuzin'
-}
-```
-
-```js
-const url = '/path?name=Nikita&surname=Ziuzin&age=20.'
-const parseMode = {
-  name: 'Nikita',
-  surname: 'Ziuzin'
-}
-```
-
-```js
-const url = '/path?name=Nikita&surname=Ziuzin&age=.3'
 const parseMode = {
   name: 'Nikita',
   surname: 'Ziuzin'

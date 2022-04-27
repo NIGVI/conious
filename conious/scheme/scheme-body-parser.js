@@ -2,143 +2,245 @@
 
 module.exports = {
   async bodyParser(req, setting, readyBody) {
+    if (setting?.isLoad) {
 
-    if (setting?.load) {
       const mode = setting.mode
-      const newReadyBody = {}
-      
-      if (!readyBody.raw) {
-        const chunks = []
-        for await (const chunk of req) {
-          chunks.push(chunk)
-        }
-        newReadyBody.raw = Buffer.concat(chunks).toString()
+      const newReadyBody = {
+        rew: readyBody.raw,
+        json: readyBody.json,
+        form: readyBody.form
       }
-      if (readyBody.raw) {
-        newReadyBody.raw = readyBody.raw
-      }
-      
+
+      // raw
       if (mode === 'raw') {
+        if (!readyBody.raw) {
+          newReadyBody.raw = await getRawBody(req)
+        }
+
         return {
           ok: true,
           body: newReadyBody.raw,
-          newReadyBody: {
-            rew: newReadyBody.raw,
-            json: readyBody.json,
-            form: readyBody.form
-          }
+          newReadyBody: newReadyBody
         }
       }
-  
-      if (setting.parse) {
-        const isJson = setting.type === 'json' || setting.type === 'any'
-        const isForm = setting.type === 'form' || setting.type === 'any'
-  
-        const contentType = req.headers?.['content-type']
-  
-        // json
-        const jsonParsed = isJson && contentType && /application\/json/.test(contentType)
-  
-        if (jsonParsed && readyBody.json === null) {
-          try {
-            newReadyBody.json = JSON.parse(newReadyBody.raw)
-          } catch (err) {
-            newReadyBody.json = err
-          }
-        }
-  
-        // form
-        const formParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
-        if (formParsed && readyBody.form === null) {
-          // to do
-        }
-  
-        if (readyBody.json !== null) {
-          newReadyBody.json = readyBody.json
-        }
-        if (readyBody.form !== null) {
-          newReadyBody.form = readyBody.form
-        }
+
+      const isJson = setting.type === 'json' || setting.type === 'any'
+      const isForm = setting.type === 'form' || setting.type === 'any'
+      const contentType = req.headers?.['content-type']
+      const jsonParsed = isJson && contentType && /application\/json/.test(contentType)
+      const formParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
+
+      // json
+      if (jsonParsed) {
+        return await jsonParsing(req, setting, readyBody, newReadyBody)
       }
-  
-      const currentValues = JSON.parse(
-        JSON.stringify(
-          setting.type === 'any' ? newReadyBody.json || newReadyBody.form
-            : newReadyBody[setting.type]
-        )
-      )
-  
-  
-      const hasValues = currentValues !== undefined
-  
-      if (mode === 'scheme' && hasValues) {
-        const { ok, result: body } = schemeBodyMatching(setting.scheme, currentValues)
-  
-        return {
-          ok,
-          body,
-          newReadyBody: {
-            rew: newReadyBody.raw,
-            json: newReadyBody.json,
-            form: newReadyBody.form
-          }
-        }
+
+      // form
+      if (formParsed) {
+        return await formParsing(req, setting, readyBody, newReadyBody)
       }
-  
+
       return {
-        ok: mode !== 'scheme',
-        body: currentValues,
-        newReadyBody: {
-          rew: newReadyBody.raw,
-          json: newReadyBody.json,
-          form: newReadyBody.form
-        }
+        ok: mode === 'parse',
+        body: null,
+        newReadyBody: readyBody
       }
     }
-    return { ok: true, body: null, newReadyBody: readyBody }
+    return {
+      ok: true,
+      body: null,
+      newReadyBody: readyBody
+    }
   }
 }
 
 
-function schemeBodyMatching(scheme, raw) {
-	const result = raw
-	const unique = Symbol()
-	let isTrue = true
-	
-	for (const { name, type, required } of scheme) {
-		const hasParam = result[name] ?? unique !== unique
+async function jsonParsing(req, setting, readyBody, newReadyBody) {
+  const raw = await getRawBody(req)
+  newReadyBody.raw = raw
+  let json = null
+  try {
+    json = JSON.parse(raw)
+  } catch (err) {
+    json = err
+  }
+  if (!(json instanceof Error)) {
+    newReadyBody.json = json
 
-		if (hasParam) {
+    if (setting.mode === 'parse' && !setting.scheme) {
+      return {
+        ok: true,
+        body: JSON.parse(JSON.stringify(json)),
+        newReadyBody
+      }
+    }
 
-			if (type === 'any') continue
+    const {
+      ok,
+      result: body
+    } = schemaMappingWithJson(setting.scheme, JSON.parse(JSON.stringify(json)))
 
-			if (typeof type === 'string' && typeof result[name] === type) continue
+    return {
+      ok,
+      body,
+      newReadyBody
+    }
+  }
+  return {
+    ok: setting.mode === 'parse',
+    body: null,
+    newReadyBody
+  }
+}
 
-			const isFunction = type instanceof Function
+async function formParsing(req, setting, readyBody, newReadyBody) {
 
-			if (type instanceof Object && !isFunction) {
-				const { ok, result: newValue } = schemeBodyMatching(type, result[name])
-				if (ok) {
-					result[name] = newValue
-					continue
-				}
-			}
+}
 
-			if (isFunction) {
-				const { ok, value: newValue } = type(result[name])
-				if (ok) {
-					result[name] = newValue
-					continue
-				}
-			}
+async function getRawBody(req) {
+  const chunks = []
+  for await (const chunk of req) {
+    chunks.push(chunk)
+  }
+  const body = Buffer.concat(chunks).toString()
 
-			delete result[name]
-		}
-		if (required) {
-			isTrue = false
-			break
-		}
-	}
+  return body
+}
 
-	return { ok: isTrue, result }
+
+function schemaMappingWithJson(scheme, raw) {
+  const result = {}
+  let isTrue = true
+
+  // object and array
+  if (isArray(raw) && scheme.array) {
+    return _schemaMappingWithJson(scheme, raw)
+  }
+  if (isObject(raw) && scheme.object) {
+    return _schemaMappingWithJson(scheme, raw)
+  }
+  if (scheme.array) {
+    return { ok: !scheme.required, result: [] }
+  }
+  if (scheme.object) {
+    return { ok: !scheme.required, result: {} }
+  }
+
+  // function
+  if (scheme.function) {
+    const { ok, value } = scheme.validFunction(raw)
+    return { ok, result: value }
+  }
+
+  // primitive value
+  if (scheme.type) {
+    if (typeof raw === scheme.type) {
+      return { ok: true, result: raw }
+    }
+    return { ok: !scheme.required, result: null }
+  }
+
+  return { ok: isTrue, result }
+}
+
+
+function _schemaMappingWithJson(scheme, raw) {
+  // object
+  if (scheme.object) {
+    const result = {}
+    let isTrue = true
+
+    for (const schemeElement of scheme.objectElements) {
+      const value = raw[schemeElement.name]
+
+      // object and array
+      if ((schemeElement.object && isObject(value)) || (schemeElement.array && isArray(value))) {
+        const { ok, result: newValue } = _schemaMappingWithJson(schemeElement, value)
+
+        if (ok) {
+          result[schemeElement.name] = newValue
+          continue
+        }
+      }
+
+      // function
+      if (schemeElement.function) {
+        const { ok, value: newValue } = schemeElement.validFunction(value)
+
+        if (ok) {
+          result[schemeElement.name] = newValue
+          continue
+        }
+      }
+
+      // primitive value
+
+      if (schemeElement.type && typeof value === schemeElement.type) {
+        result[schemeElement.name] = value
+        continue
+      }
+
+      // required test
+      if (schemeElement.required) {
+        isTrue = false
+      }
+    }
+
+
+
+    return {
+      ok: isTrue,
+      result
+    }
+  }
+
+  // array
+  if (scheme.array) {
+    const validValues = []
+
+    for (const value of raw) {
+      for (const schemeElement of scheme.arrayElements) {
+
+        // object and array
+        if ((schemeElement.object && isObject(value)) || (schemeElement.array && isArray(value))) {
+          const { ok, result: newValue } = _schemaMappingWithJson(schemeElement, value)
+  
+          if (ok) {
+            validValues.push(newValue)
+            continue
+          }
+        }
+  
+        // function
+        if (schemeElement.function) {
+          const { ok, value: newValue } = schemeElement.validFunction(value)
+  
+          if (ok) {
+            validValues.push(newValue)
+            continue
+          }
+        }
+  
+        // primitive value
+  
+        if (schemeElement.type && typeof value === schemeElement.type) {
+          validValues.push(value)
+          continue
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      result: validValues
+    }
+  }
+}
+
+
+function isObject(element) {
+  return typeof element === 'object' && element !== null
+}
+function isArray(element) {
+  return element instanceof Array
 }

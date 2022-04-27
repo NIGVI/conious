@@ -2,7 +2,7 @@
 
 const { RoutesSetter } = require('./routes-setter.js')
 const { Response } = require('./response.js')
-const { getValidData } = require('./handling-external-data/get-valid-data.js')
+const { getValidData } = require('./scheme/get-valid-data.js')
 const { StaticController } = require('./static-controller')
 
 

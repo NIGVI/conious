@@ -97,7 +97,8 @@ const input = {
   age: 20,
 }
 const parseMode = {
-  name: 'Nikita'
+  name: 'Nikita',
+  age: 20
 }
 ```
 
@@ -183,7 +184,8 @@ const parseMode = schemeMode
 const url = '/path?name=Nikita&surname=Ziuzin&age=20.'
 const schemeMode =  {
   name: 'Nikita',
-  surname: 'Ziuzin'
+  surname: 'Ziuzin',
+  age: 20
 }
 const parseMode = schemeMode
 ```
@@ -192,7 +194,8 @@ const parseMode = schemeMode
 const url = '/path?name=Nikita&surname=Ziuzin&age=.3'
 const schemeMode = {
   name: 'Nikita',
-  surname: 'Ziuzin'
+  surname: 'Ziuzin',
+  age: 0.3
 }
 const parseMode = schemeMode
 ```

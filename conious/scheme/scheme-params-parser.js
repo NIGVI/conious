@@ -3,7 +3,7 @@
 module.exports = {
   paramsParser(setting, rawParams, readyParams) {
 
-    if (setting.isParse) {
+    if (setting?.isParse) {
       let newReadyParams = null
       let resultParams = null
   
@@ -35,6 +35,7 @@ module.exports = {
       }
       resultParams = JSON.parse(JSON.stringify(newReadyParams))
   
+
       if (setting.isParse) {
         const { ok, result: params } = schemaParameterMatching(setting.scheme, resultParams, new URLSearchParams(rawParams))
         return { ok, params, newReadyParams }
@@ -47,7 +48,7 @@ module.exports = {
       }
     }
   
-    if (setting.isLoad) {
+    if (setting?.isLoad) {
       return {
         ok: true,
         params: rawParams,
@@ -70,109 +71,114 @@ function schemaParameterMatching(scheme, raw, searchParams) {
 
   // object
   if (scheme.object) {
-    for (const element of scheme.objectElements) {
+    for (const schemeElement of scheme.objectElements) {
       // array
-      if (element.array) {
-        const value = raw[element.name] ?? []
-        const validValue = []
+      if (schemeElement.array) {
+        const values = raw[schemeElement.name] ?? []
+        const validValues = []
 
-        for (const element of value) {
-          for (const schemeElement of element.arrayElements) {
+        for (const value of values) {
+          for (const schemeArrayElement of schemeElement.arrayElements) {
 
             // type
-            if (schemeElement.type) {
-              if (schemeElement.type === 'string') {
-                validValue.push(element)
+            if (schemeArrayElement.type) {
+              if (schemeArrayElement.type === 'string') {
+                validValues.push(value)
                 break
               }
   
-              if (schemeElement.type === 'number') {
+              if (schemeArrayElement.type === 'number') {
                 const numberValue = +value
                 if (isNaN(numberValue)) {
                   continue
                 }
-                validValue.push(numberValue)
+                validValues.push(numberValue)
                 break
               }
             }
 
             // function
-            if (schemeElement.function) {
-              const { ok, value } = schemeElement.validFunction(element)
+            if (schemeArrayElement.function) {
+              const { ok, value: newValue } = schemeArrayElement.validFunction(value)
         
               if (!ok) {
                 continue
               }
-              validValue.push(value)
+              validValues.push(newValue)
               break
             }
 
             // const
-            if (schemeElement.const === value) {
-              validValue.push(value)
+            if (schemeArrayElement.const === value) {
+              validValues.push(value)
               break
             }
           }
         }
-        result[element.name] = validValue
+        result[schemeElement.name] = validValues
         continue
       }
 
       // function
-      if (element.function) {
-        const { ok, value } = scheme.validFunction(raw[element.name] ?? [])
+      if (schemeElement.function) {
+        const { ok, value } = scheme.validFunction(raw[schemeElement.name] ?? [])
         
-        if (element.required && !ok) {
+        if (schemeElement.required && !ok) {
           isTrue = false
           break
         }
         if (ok) {
-          result[element.name] = value
+          result[schemeElement.name] = value
         }
         continue
       }
 
       // primitive value
-      if (element.type) {
-        if (raw[element.name] && raw[element.name].length === 1) {
-          const value = raw[element.name][0]
+      if (schemeElement.type) {
+        if (raw[schemeElement.name] && raw[schemeElement.name].length === 1) {
+          const value = raw[schemeElement.name][0]
           
-          if (element.type === 'string') {
-            result[element.name] = value
+          if (schemeElement.type === 'string') {
+            result[schemeElement.name] = value
             continue
           }
 
-          if (element.type === 'number') {
+          if (schemeElement.type === 'number') {
             const numberValue = +value
+
             if (isNaN(numberValue)) {
-              if (element.required) {
+              if (schemeElement.required) {
                 isTrue = false
                 break
               }
               continue
             }
-            result[element.name] = numberValue
+            result[schemeElement.name] = numberValue
             continue
           }
 
-          if (element.type === 'boolean') {
+          if (schemeElement.type === 'boolean') {
             if (value === '') {
-              result[element.name] = true
+              result[schemeElement.name] = true
               continue
             }
-            result[element.name] = false
+            result[schemeElement.name] = false
             continue
           }
 
-          if (element.required) {
+          if (schemeElement.required) {
             isTrue = false
             break
           }
           continue
         }
-        if (raw[element.name] && raw[element.name].length === 0 && element.type === 'boolean') {
-          result[element.name] = false
+        if (raw[schemeElement.name] && raw[schemeElement.name].length === 0 && schemeElement.type === 'boolean') {
+          result[schemeElement.name] = false
         }
+      }
+      if (schemeElement.required) {
+        isTrue = false
+        break
       }
     }
   }
