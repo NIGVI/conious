@@ -120,9 +120,10 @@ async function bodyParser(req, setting, readyBody) {
 
 			// json
 			const jsonParsed = isJson && contentType && /application\/json/.test(contentType)
-			if (jsonParsed && readyBody.json === undefined) {
+
+			if (jsonParsed && readyBody.json === null) {
 				try {
-					newReadyBody.json = JSON.parse(readyBody.raw)
+					newReadyBody.json = JSON.parse(newReadyBody.raw)
 				} catch (err) {
 					newReadyBody.json = err
 				}
@@ -130,14 +131,14 @@ async function bodyParser(req, setting, readyBody) {
 
 			// form
 			const formParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
-			if (formParsed && readyBody.form === undefined) {
+			if (formParsed && readyBody.form === null) {
 				// to do
 			}
 
-			if (readyBody.json !== undefined) {
+			if (readyBody.json !== null) {
 				newReadyBody.json = readyBody.json
 			}
-			if (readyBody.form !== undefined) {
+			if (readyBody.form !== null) {
 				newReadyBody.form = readyBody.form
 			}
 		}
@@ -148,6 +149,7 @@ async function bodyParser(req, setting, readyBody) {
 					: newReadyBody[setting.type]
 			)
 		)
+
 
 		const hasValues = currentValues !== undefined
 

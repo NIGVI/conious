@@ -4,41 +4,26 @@ const base = require('../../server-entry-point')
 const supertest = require('supertest')
 const { setRequest } = require('../../set-request.js')
 
-let serverOnlyOptions
-let serverShort
-let agentOnlyOptions
-let agentShort
-let requestOnlyOptions = () => agentOnlyOptions
-let requestShort = () => agentShort
+let server, agent
+let request = () => agent
 
 
 beforeAll(async () => {
-	serverOnlyOptions = await base('content-type_only-options.js')
-	serverShort = await base('content-type_short.js')
+	server = await base('parsing-tests/param-parsing.js')
 
-	agentOnlyOptions = supertest.agent(serverOnlyOptions)
-	agentShort = supertest.agent(serverShort)
+	agent = supertest.agent(server)
 })
 afterAll(async () => {
-	serverOnlyOptions.close()
-	serverShort.close()
+	server.close()
 })
 
 
-testForBaseRouting('Пустой тест', requestOnlyOptions) // 'Базовый роутинг только через опции'
-// testForBaseRouting('Базовый роутинг только сокращенный синтаксис', requestShort)
+describe('Пустой тест', () => {
 
+	test('Тесты не написаны', (done) => done(new Error('Тесты не написаны')))
 
+})
 
-
-function testForBaseRouting(msg, request) {
-
-	describe(msg, () => {
-
-		test('Тесты не написаны', (done) => done(new Error('Тесты не написаны')))
-
-	})
-}
 
 const typeScheme1 = {
 	'str': 'string',

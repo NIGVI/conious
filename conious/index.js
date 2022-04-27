@@ -1,1 +1,4 @@
-module.exports = require('./conious.js')
+module.exports = {
+  Conious: require('./conious.js'),
+  setSetting: require('./scheme/setting.js').setSetting
+}
