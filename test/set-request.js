@@ -12,6 +12,9 @@ module.exports = {
 		let code = 200
 		let method = 'get'
 		let headers = []
+		let json = null
+		let form = null
+		let sendFiles = null
 
 		if (typeof options === 'object' && options !== null) {
 			({
@@ -19,7 +22,10 @@ module.exports = {
 				body = '',
 				code = 200,
 				method = 'get',
-				headers = []
+				headers = [],
+				form = null,
+				sendFiles = null,
+				json = null
 			} = options)
 		}
 		if (typeof options === 'string') {
@@ -44,6 +50,11 @@ module.exports = {
 
 					const req = request()[method](encodeURI(url))
 	
+					if (json !== null) {
+						req.type('json')
+						req.send(JSON.stringify(json))
+					}
+
 					req.expect(code)
 	
 					if (body !== null || body !== false) {
@@ -52,6 +63,18 @@ module.exports = {
 	
 					for (let i = 0; i < headers.length; i++) {
 						req.expect(headers[i][0], headers[i][1])
+					}
+
+					if (form !== null) {
+						for (const [key, value] of Object.entries()) {
+							req.field(key, value)
+						}
+					}
+					
+					if (sendFiles !== null) {
+						for (const [name, file] of Object.entries(sendFiles)) {
+							req.attach(name, file)
+						}
 					}
 	
 					req.end(err => {
