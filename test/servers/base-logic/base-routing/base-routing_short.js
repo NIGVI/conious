@@ -2,7 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
-const Conious = require('../../../../conious')
+const { Conious } = require('../../../../conious')
 
 
 module.exports = async (server) => {
