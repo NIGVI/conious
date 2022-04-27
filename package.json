@@ -4,12 +4,15 @@
   "main": "conious/index.js",
   "scripts": {
     "test": "jest test",
-    "test-file": "jest test --findRelatedTests test/tests/parsing-tests/param-parsing.test.js"
+    "test-file": "jest test --findRelatedTests test/tests/parsing-tests/auto-test-from-markdown.test.js"
   },
   "author": "NIGVI",
   "devDependencies": {
     "eslint": "^8.10.0",
     "jest": "^27.5.1",
     "supertest": "^6.2.2"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0"
   }
 }
