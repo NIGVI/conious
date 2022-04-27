@@ -40,14 +40,14 @@ function getBodySetting(body) {
 
   if (body.mode === 'parse') {
     if (body.scheme) {
-      const scheme = parseForSchemeTopLevelV2(body.scheme, false, body.type ?? 'any')
+      const scheme = parseForSchemeTopLevel(body.scheme, false, body.type ?? 'any')
       return { isLoad: true, isParse: true, isScheme: false, mode: body.mode, type: body.type ?? 'any', scheme: scheme }
     }
     return { isLoad: true, isParse: true, isScheme: false, mode: body.mode, type: body.type ?? 'any', scheme: null }
   }
 
   if (body.mode === 'scheme' && body.scheme) {
-    const scheme = parseForSchemeTopLevelV2(body.scheme, true, body.type ?? 'any')
+    const scheme = parseForSchemeTopLevel(body.scheme, true, body.type ?? 'any')
     return { isLoad: true, isParse: true, isScheme: true, mode: body.mode, type: body.type ?? 'any', scheme: scheme }
   }
 
@@ -59,7 +59,7 @@ function getBodySetting(body) {
 }
 
 
-function parseForSchemeTopLevelV2(scheme, required, type) {
+function parseForSchemeTopLevel(scheme, required, type) {
 
   // object
   if (isObject(scheme)) {
@@ -214,7 +214,7 @@ function arraySetting(scheme, type) {
   const result = { array: true, arrayElements: [] }
 
   for (const element of scheme) {
-    const elementSetting = parseForScheme(element)
+    const elementSetting = parseForScheme(element, type)
     if (type !== 'json') {
       if (elementSetting.array || elementSetting.object) {
         throw new Error('Non json cannot have in an array such types as object or other array.')
@@ -242,7 +242,7 @@ function getElement(options) {
   }, options)
 }
 function isPrimitiveValue(scheme) {
-  return !isArray(scheme) && !isObject(scheme) && !isSetting(scheme)
+  return !isArray(scheme) && !isObject(scheme) && !isSetting(scheme) && !(scheme instanceof Function)
 }
 function isArray(scheme) {
   return scheme instanceof Array

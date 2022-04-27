@@ -16,66 +16,74 @@ for (const scheme of schemes) {
   const request = () => agent
   const app = new Conious(server)
 
-  app.get('/json/parse', {
-    body: {
-      mode: 'parse',
-      type: 'json',
-      scheme: scheme.scheme
-    },
-    handler({ body }) {
-      return JSON.stringify(sortingParams(body), null, 2)
-    }
-  })
-  app.get('/json/scheme', {
-    body: {
-      mode: 'scheme',
-      type: 'json',
-      scheme: scheme.scheme
-    },
-    handler({ body }) {
-      return JSON.stringify(sortingParams(body), null, 2)
-    }
-  })
+  if (scheme.jsonTests.length !== 0) {
+    app.get('/json/parse', {
+      body: {
+        mode: 'parse',
+        type: 'json',
+        scheme: scheme.scheme
+      },
+      handler({ body }) {
+        return JSON.stringify(sortingParams(body), null, 2)
+      }
+    })
+    app.get('/json/scheme', {
+      body: {
+        mode: 'scheme',
+        type: 'json',
+        scheme: scheme.scheme
+      },
+      handler({ body }) {
+        return JSON.stringify(sortingParams(body), null, 2)
+      }
+    })
+  }
 
-  app.get('/params/parse', {
-    params: {
-      mode: 'parse',
-      scheme: scheme.scheme
-    },
-    handler({ params }) {
-      return JSON.stringify(sortingParams(params), null, 2)
-    }
-  })
-  app.get('/params/scheme', {
-    params: {
-      mode: 'scheme',
-      scheme: scheme.scheme
-    },
-    handler({ params }) {
-      return JSON.stringify(sortingParams(params), null, 2)
-    }
-  })
 
-  app.get('/form/parse', {
-    body: {
-      mode: 'parse',
-      type: 'form',
-      scheme: scheme.scheme
-    },
-    handler({ body }) {
-      return JSON.stringify(sortingParams(body), null, 2)
-    }
-  })
-  app.get('/form/scheme', {
-    body: {
-      mode: 'scheme',
-      type: 'form',
-      scheme: scheme.scheme
-    },
-    handler({ body }) {
-      return JSON.stringify(sortingParams(body), null, 2)
-    }
-  })
+  if (scheme.paramsTests.length !== 0) {
+    app.get('/params/parse', {
+      params: {
+        mode: 'parse',
+        scheme: scheme.scheme
+      },
+      handler({ params }) {
+        return JSON.stringify(sortingParams(params), null, 2)
+      }
+    })
+    app.get('/params/scheme', {
+      params: {
+        mode: 'scheme',
+        scheme: scheme.scheme
+      },
+      handler({ params }) {
+        return JSON.stringify(sortingParams(params), null, 2)
+      }
+    })
+  }
+
+
+  if (scheme.formTests.length !== 0) {
+    app.get('/form/parse', {
+      body: {
+        mode: 'parse',
+        type: 'form',
+        scheme: scheme.scheme
+      },
+      handler({ body }) {
+        return JSON.stringify(sortingParams(body), null, 2)
+      }
+    })
+    app.get('/form/scheme', {
+      body: {
+        mode: 'scheme',
+        type: 'form',
+        scheme: scheme.scheme
+      },
+      handler({ body }) {
+        return JSON.stringify(sortingParams(body), null, 2)
+      }
+    })
+  }
   // end server
 
 

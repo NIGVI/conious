@@ -33,11 +33,9 @@ const scheme = {
 Trues:
 
 ```js
-
 const input = {
   skill: []
 }
-
 const schemeMode = {
   skill: []
 }

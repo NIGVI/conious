@@ -66,8 +66,10 @@ module.exports = {
 
 
 function schemaParameterMatching(scheme, raw, searchParams) {
+  const unique = Symbol('')
+  const result = {}
   let isTrue = true
-  let result = {}
+  
 
   // object
   if (scheme.object) {
@@ -120,8 +122,8 @@ function schemaParameterMatching(scheme, raw, searchParams) {
       }
 
       // function
-      if (schemeElement.function) {
-        const { ok, value } = scheme.validFunction(raw[schemeElement.name] ?? [])
+      if (schemeElement.function && (raw[schemeElement.name] ?? unique) !== unique) {
+        const { ok, value } = schemeElement.validFunction(raw[schemeElement.name][0])
         
         if (schemeElement.required && !ok) {
           isTrue = false

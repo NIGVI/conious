@@ -156,7 +156,7 @@ function _schemaMappingWithJson(scheme, raw) {
       // object and array
       if ((schemeElement.object && isObject(value)) || (schemeElement.array && isArray(value))) {
         const { ok, result: newValue } = _schemaMappingWithJson(schemeElement, value)
-
+        
         if (ok) {
           result[schemeElement.name] = newValue
           continue
@@ -222,7 +222,6 @@ function _schemaMappingWithJson(scheme, raw) {
         }
   
         // primitive value
-  
         if (schemeElement.type && typeof value === schemeElement.type) {
           validValues.push(value)
           continue
