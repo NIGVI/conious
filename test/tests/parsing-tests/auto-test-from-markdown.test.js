@@ -161,7 +161,7 @@ for (const scheme of schemes) {
 
     // form
     if (scheme.formTests.length !== 0) {
-      describe('Тесты парсинга form', () => {
+      describe('Тесты парсинга form application/x-www-form-urlencoded', () => {
         let i = 0
         for (const schemeTest of scheme.formTests) {
           i++
@@ -171,6 +171,40 @@ for (const scheme of schemes) {
           }
           if (schemeTest.schemeMode) {
             schemeOptions.code = 200
+            schemeOptions.form = schemeTest.input
+            schemeOptions.body = JSON.stringify(sortingParams(schemeTest.schemeMode), null, 2)
+          }
+          test(
+            `Тест парсинга form в режиме scheme №${ i }`,
+            setRequest(request, '/form/scheme', schemeOptions)
+          )
+
+          let parseOptions = {
+            code: 404,
+            formType: 'application/x-www-form-urlencoded'
+          }
+          if (schemeTest.parseMode) {
+            parseOptions.code = 200
+            parseOptions.form = schemeTest.input
+            parseOptions.body = JSON.stringify(sortingParams(schemeTest.parseMode), null, 2)
+          }
+          test(
+            `Тест парсинга form в режиме parse №${ i }`,
+            setRequest(request, '/form/parse', parseOptions)
+          )
+        }
+      })
+      describe('Тесты парсинга form multipart/form-data', () => {
+        let i = 0
+        for (const schemeTest of scheme.formTests) {
+          i++
+
+          let schemeOptions = {
+            code: 404
+          }
+          if (schemeTest.schemeMode) {
+            schemeOptions.code = 200
+            schemeOptions.form = schemeTest.input
             schemeOptions.body = JSON.stringify(sortingParams(schemeTest.schemeMode), null, 2)
           }
           test(
@@ -183,11 +217,12 @@ for (const scheme of schemes) {
           }
           if (schemeTest.parseMode) {
             parseOptions.code = 200
+            parseOptions.form = schemeTest.input
             parseOptions.body = JSON.stringify(sortingParams(schemeTest.parseMode), null, 2)
           }
           test(
             `Тест парсинга form в режиме parse №${ i }`,
-            setRequest(request, '/form/params', parseOptions)
+            setRequest(request, '/form/parse', parseOptions)
           )
         }
       })

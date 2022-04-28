@@ -14,6 +14,7 @@ module.exports = {
 		let headers = []
 		let json = null
 		let form = null
+		let formType = 'multipart/form-data'
 		let sendFiles = null
 
 		if (typeof options === 'object' && options !== null) {
@@ -25,7 +26,8 @@ module.exports = {
 				headers = [],
 				form = null,
 				sendFiles = null,
-				json = null
+				json = null,
+				formType = 'multipart/form-data'
 			} = options)
 		}
 		if (typeof options === 'string') {
@@ -65,9 +67,32 @@ module.exports = {
 						req.expect(headers[i][0], headers[i][1])
 					}
 
-					if (form !== null) {
-						for (const [key, value] of Object.entries()) {
+					if (form !== null && formType === 'multipart/form-data') {
+						const fields = Object.entries(form)
+
+						if (fields.length === 0) {
+							req.field('', '')
+						}
+
+						for (const [key, value] of fields) {
 							req.field(key, value)
+						}
+					}
+					if (form !== null && formType === 'application/x-www-form-urlencoded') {
+						const fields = Object.entries(form)
+
+						if (fields.length === 0) {
+							req.send('')
+						}
+						
+						for (const [key, value] of fields) {
+							if (value instanceof Array) {
+								for (const valueElement of value) {
+									req.send(`${ key }=${ valueElement }`)
+								}
+								continue
+							}
+							req.send(`${ key }=${ value }`)
 						}
 					}
 					
