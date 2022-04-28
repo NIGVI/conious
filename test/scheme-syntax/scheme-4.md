@@ -80,14 +80,11 @@ const input = {
   date: 'word'
 }
 const parseMode = {}
-// no output
 ```
 
 ```js
-// input
 const input = {}
 const parseMode = {}
-// no output
 ```
 
 
@@ -114,6 +111,15 @@ const schemeMode = {
 const parseMode = schemeMode
 ```
 
+```js
+const url = '/path?date=word&date=1651076544028&date=word'
+
+const schemeMode = {
+  date: '2022-04-27T16:22:24.028Z'
+}
+const parseMode = schemeMode
+```
+
 Falsies:
 
 ```js
@@ -125,5 +131,65 @@ const parseMode = {}
 ```js
 const url = '/path?date=word'
 
+const parseMode = {}
+```
+
+
+
+### form
+
+Trues:
+
+```js
+const input = {
+  date: '1651076544028'
+}
+const schemeMode = {
+  date: '2022-04-27T16:22:24.028Z'
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  date: '1651076524028'
+}
+const schemeMode ={
+  date: '2022-04-27T16:22:04.028Z'
+}
+const parseMode = schemeMode
+```
+
+```js
+const input = {
+  date: ['1651076544028', '1351122579028']
+}
+const schemeMode = {
+  date: '2022-04-27T16:22:24.028Z'
+}
+const parseMode = schemeMode
+```
+
+```js
+const input = {
+  date: ['word', '1651076544028', 'word']
+}
+const schemeMode = {
+  date: '2022-04-27T16:22:24.028Z'
+}
+const parseMode = schemeMode
+```
+
+Falsies:
+
+```js
+const input = {
+  date: 'word'
+}
+const parseMode = {}
+```
+
+```js
+const input = {}
 const parseMode = {}
 ```

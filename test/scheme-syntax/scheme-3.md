@@ -145,3 +145,63 @@ const schemeMode = {
 }
 const parseMode = schemeMode
 ```
+
+
+
+### form
+
+Trues:
+
+```js
+const input = {}
+const schemeMode = {
+  skill: []
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  skill: [
+    'word1',
+    'word2',
+    'word3'
+  ]
+}
+const schemeMode ={
+  skill: [
+    'word1',
+    'word2',
+    'word3'
+  ]
+}
+const parseMode = schemeMode
+```
+
+```js
+const input = {
+  skill: [
+    'word1',
+    40,
+    'word3'
+  ]
+}
+const schemeMode = {
+  skill: [
+    'word1',
+    '40',
+    'word3'
+  ]
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  skill: 'word'
+}
+const schemeMode = {
+  skill: ['word']
+}
+const parseMode = schemeMode
+```

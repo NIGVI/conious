@@ -6,7 +6,7 @@
 
 ```ts
 interface scheme {
-  date: (string | Date)[]
+  date: Date[]
 }
 ```
 
@@ -79,17 +79,24 @@ Falsies:
 
 ```js
 const input = {
-  date: 'word'
+  date: ['word']
 }
-const parseMode = {}
-// no output
+const schemeMode = {
+  date: []
+}
+const parseMode = schemeMode
 ```
 
 ```js
-// input
+const input = {
+  date: 'word'
+}
+const parseMode = {}
+```
+
+```js
 const input = {}
 const parseMode = {}
-// no output
 ```
 
 
@@ -100,7 +107,6 @@ Trues:
 
 ```js
 const url = '/path?date=1651076544028'
-
 const schemeMode = {
   date: ['2022-04-27T16:22:24.028Z']
 }
@@ -109,7 +115,14 @@ const parseMode = schemeMode
 
 ```js
 const url = '/path?date=1651076544028&date=1351122579028'
+const schemeMode = {
+  date: ['2022-04-27T16:22:24.028Z', '2012-10-24T23:49:39.028Z']
+}
+const parseMode = schemeMode
+```
 
+```js
+const url = '/path?date=1651076544028&date=word&date=1351122579028'
 const schemeMode = {
   date: ['2022-04-27T16:22:24.028Z', '2012-10-24T23:49:39.028Z']
 }
@@ -118,7 +131,6 @@ const parseMode = schemeMode
 
 ```js
 const url = '/path'
-
 const schemeMode = {
   date: []
 }
@@ -127,7 +139,60 @@ const parseMode = schemeMode
 
 ```js
 const url = '/path?date=word'
+const schemeMode = {
+  date: []
+}
+const parseMode = schemeMode
+```
 
+
+
+### form
+
+Trues:
+
+```js
+const input = {
+  date: 1651076544028
+}
+const schemeMode = {
+  date: ['2022-04-27T16:22:24.028Z']
+}
+const parseMode = schemeMode
+```
+
+```js
+const input = {}
+const schemeMode = {
+  date: []
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  date: [1651076544028, 1351122579028]
+}
+const schemeMode ={
+  date: ['2022-04-27T16:22:24.028Z', '2012-10-24T23:49:39.028Z']
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  date: [1651076544028, 'word', 1351122579028]
+}
+const schemeMode = {
+  date: ['2022-04-27T16:22:24.028Z', '2012-10-24T23:49:39.028Z']
+}
+const parseMode = schemeMode
+```
+
+```js
+const input ={
+  date: 'word'
+}
 const schemeMode = {
   date: []
 }
