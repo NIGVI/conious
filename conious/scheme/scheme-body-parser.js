@@ -1,5 +1,8 @@
 
 
+const { formMultipartParsing, formXWWWParsing } = require('./scheme-form-parser.js')
+
+
 module.exports = {
   async bodyParser(req, setting, readyBody) {
     if (setting?.isLoad) {
@@ -28,16 +31,22 @@ module.exports = {
       const isForm = setting.type === 'form' || setting.type === 'any'
       const contentType = req.headers?.['content-type']
       const jsonParsed = isJson && contentType && /application\/json/.test(contentType)
-      const formParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
+      const formMultipartParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
+      const formXWWWParsed = isForm && contentType && /application\/x-www-form-urlencoded/.test(contentType)
 
       // json
       if (jsonParsed) {
         return await jsonParsing(req, setting, readyBody, newReadyBody)
       }
 
-      // form
-      if (formParsed) {
-        return await formParsing(req, setting, readyBody, newReadyBody)
+      // form multipart
+      if (formMultipartParsed) {
+        return await formMultipartParsing(req, setting, readyBody, newReadyBody)
+      }
+
+      // form multipart
+      if (formXWWWParsed) {
+        return await formXWWWParsing(req, setting, readyBody, newReadyBody)
       }
 
       return {
@@ -55,6 +64,7 @@ module.exports = {
 }
 
 
+// json functions
 async function jsonParsing(req, setting, readyBody, newReadyBody) {
   const raw = await getRawBody(req)
   newReadyBody.raw = raw
@@ -91,10 +101,6 @@ async function jsonParsing(req, setting, readyBody, newReadyBody) {
     body: null,
     newReadyBody
   }
-}
-
-async function formParsing(req, setting, readyBody, newReadyBody) {
-
 }
 
 async function getRawBody(req) {
@@ -243,3 +249,4 @@ function isObject(element) {
 function isArray(element) {
   return element instanceof Array
 }
+// end json functions
