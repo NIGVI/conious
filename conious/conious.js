@@ -101,7 +101,7 @@ class Conious extends RoutesSetter {
 			let url, urlParams, parentPaths = {}
 
 			const send = this.response.getResponseFunction.bind(this.response)
-			const originalURL = req.url
+			const fullURL = req.url
 
 			if (settingFromParent) {
 				url = settingFromParent.url
@@ -152,7 +152,7 @@ class Conious extends RoutesSetter {
 						send,
 						env: this.env,
 						url,
-						originalURL
+						fullURL
 					}
 	
 					const middlewarePromise = middleware.handler(middlewareArg)
@@ -192,6 +192,7 @@ class Conious extends RoutesSetter {
 
 					const middlewareNextArg = {
 						matched: true,
+						type: 'static',
 						err: null
 					}
 					await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
@@ -265,6 +266,7 @@ class Conious extends RoutesSetter {
 	
 								const middlewareNextArg = {
 									matched: branchResult.matched,
+									type: 'branch',
 									err: null
 								}
 								await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
@@ -297,12 +299,6 @@ class Conious extends RoutesSetter {
 							if (ok) {
 
 								let passCurrentController = false
-
-								const middlewareNextArg = {
-									matched: true,
-									err: null
-								}
-								await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
 	
 								const controllerOptions = {
 									controllerPass: ()  => { passCurrentController = true },
@@ -312,7 +308,7 @@ class Conious extends RoutesSetter {
 									body: body,
 									send: send,
 									env: this.env,
-									originalURL,
+									fullURL,
 									url,
 									req,
 									res
@@ -334,6 +330,13 @@ class Conious extends RoutesSetter {
 									result = await result
 								}
 								if (!passCurrentController) {
+									const middlewareNextArg = {
+										matched: true,
+										type: 'controller',
+										err: null
+									}
+									await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+
 									if (!this.isRoot) {
 										const send = this.response.send.bind(this.response, req, res, result, controller, fullCloseResolve)
 										return { matched: true, send, waitingFullClose, err: null }
@@ -358,6 +361,7 @@ class Conious extends RoutesSetter {
 
 			const middlewareNextArg = {
 				matched: false,
+				type: 'no route',
 				err: null
 			}
 	
