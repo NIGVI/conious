@@ -4,10 +4,10 @@ const { formMultipartParsing, formXWWWParsing } = require('./scheme-form-parser.
 
 
 module.exports = {
-  async bodyParser(req, setting, readyBody) {
-    if (setting?.isLoad) {
+  async bodyParser(req, bodySetting, filesSetting,  readyBody) {
+    if (bodySetting?.isLoad) {
 
-      const mode = setting.mode
+      const mode = bodySetting.mode
       const newReadyBody = {
         rew: readyBody.raw,
         json: readyBody.json,
@@ -27,8 +27,8 @@ module.exports = {
         }
       }
 
-      const isJson = setting.type === 'json' || setting.type === 'any'
-      const isForm = setting.type === 'form' || setting.type === 'any'
+      const isJson = bodySetting.type === 'json' || bodySetting.type === 'any'
+      const isForm = bodySetting.type === 'form' || bodySetting.type === 'any'
       const contentType = req.headers?.['content-type']
       const jsonParsed = isJson && contentType && /application\/json/.test(contentType)
       const formMultipartParsed = isForm && contentType && /multipart\/form-data/.test(contentType)
@@ -36,17 +36,17 @@ module.exports = {
 
       // json
       if (jsonParsed) {
-        return await jsonParsing(req, setting, readyBody, newReadyBody)
+        return await jsonParsing(req, bodySetting, readyBody, newReadyBody)
       }
 
       // form multipart
       if (formMultipartParsed) {
-        return await formMultipartParsing(req, setting, readyBody, newReadyBody)
+        return await formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody)
       }
 
       // form multipart
       if (formXWWWParsed) {
-        return await formXWWWParsing(req, setting, readyBody, newReadyBody)
+        return await formXWWWParsing(req, bodySetting, readyBody, newReadyBody)
       }
 
       return {
@@ -55,6 +55,21 @@ module.exports = {
         newReadyBody: readyBody
       }
     }
+
+    if (
+      typeof filesSetting === 'object' && filesSetting !== null &&
+      (filesSetting.isScheme || filesSetting.allParse) &&
+      req.headers['content-type'] && /multipart\/form-data/.test(req.headers['content-type'])
+    ) {
+      const newReadyBody = {
+        rew: readyBody.raw,
+        json: readyBody.json,
+        form: readyBody.form,
+        requestFile: readyBody.requestFile
+      }
+      return await formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody)
+    }
+
     return {
       ok: true,
       body: null,

@@ -14,6 +14,7 @@ module.exports = {
 			return {
 				ok: false,
 				body: null,
+				files: null,
 				params: null,
 				newReadyBody: {
 					params: newReadyParams,
@@ -22,11 +23,12 @@ module.exports = {
 			}
 		}
 
-		const { ok: testOnBody, body, newReadyBody } = await bodyParser(req, settings.body, readyRequestData.body)
+		const { ok: testOnBody, body, files, newReadyBody } = await bodyParser(req, settings.body, settings.files, readyRequestData.body)
 		
 		return {
 			ok: testOnParams && testOnBody,
 			body: body instanceof Error ? null : body,
+			files: files ?? null,
 			params: params ?? urlParams,
 			newReadyData: {
 				params: newReadyParams,

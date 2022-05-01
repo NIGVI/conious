@@ -5,19 +5,107 @@ const { Setting } = require('./setting.js')
 module.exports = {
   getParamsSetting(params) {
 		return getBodySetting({
-			mode: params.mode,
+			mode: params?.mode,
 			type: 'params',
-			scheme: params.scheme
+			scheme: params?.scheme
 		})
 	},
 
 	getBodySetting(body) {
 		return getBodySetting({
-			mode: body.mode,
-			type: body.type,
-			scheme: body.scheme
+			mode: body?.mode,
+			type: body?.type,
+			scheme: body?.scheme
 		})
-	}
+	},
+
+  getFilesSetting(files, temp) {
+    if (typeof files == 'object' && files !== null) {
+      return getFilesSetting(files, temp)
+    }
+    if (files === 'all') {
+      return {
+        isScheme: false,
+        allParse: true,
+        files: null,
+        temp: temp
+      }
+    }
+    throw new Error('Option "files" must be string or object.')
+  }
+}
+
+
+function getFilesSetting(files, temp) {
+  const filesScheme = {}
+
+  if (typeof files.temp === 'string') {
+    temp = files.temp
+  }
+
+  const isArray = files.scheme instanceof Array
+  const isObject = typeof files.scheme === 'object' && files.scheme !== null && !isArray
+
+  if (!isArray && !isObject) {
+    throw new Error('Option "files.scheme" must be array or object.')
+  }
+
+  if (isArray) {
+    for (const setting of files.scheme) {
+      let field = ''
+
+      if (typeof setting.field === 'string') {
+        field = setting.field
+      } else {
+        throw new Error('Option "files.scheme[*].field" must be string.')
+      }
+
+      const fileScheme = {
+        type: 'one',
+        limit: 1024
+      }
+  
+      if (typeof setting.limit === 'number' && setting.limit >= 0) {
+        fileScheme.limit = setting.limit
+      }
+  
+      if (setting.type === 'array' || setting.type === 'one') {
+        fileScheme.type = setting.type
+      }
+  
+      filesScheme[field] = fileScheme
+    }
+  }
+
+  if (isObject) {
+    const filesEntries = Object.entries(files.scheme)
+
+    for (const [field, setting] of filesEntries) {
+      const fileScheme = {
+        type: 'one',
+        limit: 1024
+      }
+  
+      if (typeof setting.limit === 'number' && setting.limit >= 0) {
+        fileScheme.limit = setting.limit
+      }
+  
+      if (setting.type === 'array' || setting.type === 'one') {
+        fileScheme.type = setting.type
+      }
+  
+      filesScheme[field] = fileScheme
+    }
+  }
+
+
+
+  return {
+    isScheme: true,
+    allParse: false,
+    files: filesScheme,
+    temp: temp
+  }
 }
 
 

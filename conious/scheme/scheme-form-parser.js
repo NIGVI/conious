@@ -1,5 +1,8 @@
 
 
+const fs = require('fs')
+const path = require('path')
+const crypto = require('crypto')
 const busboy = require('busboy')
 const {
   getParamsOrFieldFromRawString,
@@ -69,12 +72,71 @@ async function getRawBody(req) {
 
 
 // form multipart functions
-async function formMultipartParsing(req, setting, readyBody, newReadyBody) {
+async function formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody) {
   const bb = busboy({ headers: req.headers })
   const fieldsContainer = {}
   const filesContainer = {}
 
-  // get field
+  // getting data
+  setFormFieldsHandler(bb, fieldsContainer)
+  setFormFilesHandler(bb, filesContainer, filesSetting)
+  // end getting data
+
+  // close and reuse control
+  const closePromise = createEndPromise(bb, req, filesSetting, readyBody, newReadyBody)
+
+  if (!readyBody.requestFile) {
+    req.pipe(bb)
+  }
+  if (readyBody.requestFile) {
+    const reqBodyFromFile = fs.createReadStream(readyBody.requestFile)
+    reqBodyFromFile.pipe(bb)
+  }
+  await closePromise
+
+  if (!readyBody.form) {
+    newReadyBody.form = JSON.parse(JSON.stringify(fieldsContainer))
+  }
+  // end close and reuse control
+
+  // value returning and validate data
+  const files = Object.entries(filesContainer).length === 0 ? null : filesContainer
+
+  if (bodySetting?.scheme) {
+    const { ok, result: fields } = schemeMappingForFormOrParams(bodySetting.scheme, fieldsContainer, fieldsContainer)
+    return {
+      ok,
+      body: fields,
+      files: files,
+      newReadyBody
+    }
+  } else if (bodySetting?.mode === 'parse') {
+    return {
+      ok: true,
+      body: fieldsContainer,
+      files: files,
+      newReadyBody
+    }
+  } else if (files !== null) {
+    return {
+      ok: true,
+      body: null,
+      files: files,
+      newReadyBody
+    }
+  }
+
+  return {
+    ok: false,
+    body: null,
+    files: null,
+    newReadyBody
+  }
+  // end value returning and validate data
+}
+
+
+function setFormFieldsHandler(bb, fieldsContainer) {
   bb.on('field', (name, val, info) => {
     if (info.mimeType === 'text/plain') {
       if (!fieldsContainer[name]) {
@@ -85,45 +147,138 @@ async function formMultipartParsing(req, setting, readyBody, newReadyBody) {
       console.error(name, val, info)
     }
   })
-  // end get field
-  setFormFilesHandler(bb, filesContainer, setting.mode, setting.scheme)
+}
 
-  const closePromise = new Promise(resolve => {
-    bb.on('close', () => {
-      resolve(true)
-    })
-  })
 
-  req.pipe(bb)
-  await closePromise
+function setFormFilesHandler(bb, filesContainer, filesSetting) {
+  if (
+    typeof filesSetting === 'object' && filesSetting !== null &&
+    (filesSetting.isScheme || filesSetting.allParse)
+  ) {
+    if (filesSetting.isScheme) {
+      bb.on('file', async (name, file, info) => {
+        const { filename, encoding, mimeType } = info
+        const fileInfo = {
+          filename,
+          mimeType,
+          encoding
+        }
 
-  if (!readyBody.form) {
-    newReadyBody.form = JSON.parse(JSON.stringify(fieldsContainer))
-  }
+        if (filesSetting.files[name]) {
+          const fileSetting = filesSetting.files[name]
+          const isArray = fileSetting.type === 'array'
 
-  if  (setting.scheme) {
-    const { ok, result } = schemeMappingForFormOrParams(setting.scheme, fieldsContainer, fieldsContainer)
-    return {
-      ok,
-      body: result,
-      newReadyBody
+          if (isArray && !filesContainer[name]) {
+            filesContainer[name] = []
+          }
+          if (isArray) {
+            filesContainer[name].push(fileInfo)
+          }
+          if (!isArray && filesContainer[name]) {
+            file.resume()
+            return
+          }
+          if (!isArray && !filesContainer[name]) {
+            filesContainer[name] = fileInfo
+          }
+          
+          const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
+
+          fileInfo.path = savedFileInfo.filePath
+          fileInfo.savedFilename = savedFileInfo.filename
+        } else {
+          file.resume()
+        }
+      })
     }
-  } else if (setting.mode === 'parse') {
-    return {
-      ok: true,
-      body: fieldsContainer,
-      newReadyBody
-    }
-  }
+    if (filesSetting.allParse) {
+      bb.on('file', async (name, file, info) => {
+        const { filename, encoding, mimeType } = info
+        const fileInfo = {
+          filename,
+          mimeType,
+          encoding
+        }
 
-  return {
-    ok: false,
-    body: null,
-    newReadyBody
+        if (!filesContainer[name]) {
+          filesContainer[name] = []
+        }
+        filesContainer[name].push(fileInfo)
+        const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
+
+        fileInfo.path = savedFileInfo.filePath
+        fileInfo.savedFilename = savedFileInfo.filename
+
+      })
+    }
   }
 }
 
 
-function setFormFilesHandler(bb, fieldsContainer, mode, scheme) {
-  // todo
+function createEndPromise(bb, req, filesSetting, readyBody, newReadyBody) {
+  let countCompleted = 0
+  let resolvePromise
+  let rejectPromise
+
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve; rejectPromise = reject
+  })
+
+  bb.on('close', () => {
+    if (++countCompleted === 2) {
+      resolvePromise(true)
+    }
+  })
+
+  // create file for reuse body stream
+  if (readyBody.requestFile) {
+    countCompleted++
+  }
+  if (!readyBody.requestFile) {
+    writingFileWithRandomName(req, filesSetting.temp, 'request-body')
+      .then((fileInfo) => {
+        newReadyBody.requestFile = fileInfo.filePath
+
+        if (++countCompleted === 2) {
+          resolvePromise(true)
+        }
+      })
+      .catch(rejectPromise)
+  }
+  // end create file for reuse body stream
+
+  return promise
+}
+
+
+async function writingFileWithRandomName(readStream, temp, prefix) {
+  const thisIsTrue = true
+  while (thisIsTrue) {
+    try {
+      const name = crypto.randomUUID()
+      let filePath
+      if (prefix) {
+        filePath = path.join(temp, `${ prefix }-${ name }`)
+      }
+      if (!prefix) {
+        filePath = path.join(temp, name)
+      }
+
+      const writableStream = fs.createWriteStream(filePath, { flags: 'wx' })
+
+      await readStream.pipe(writableStream)
+
+      return {
+        filePath,
+        filename: prefix
+          ? `${ prefix }-${ name }`
+          : name
+      }
+    } catch (err) {
+      console.log('file name repeated')
+      if (err.code !== 'EEXIST') {
+        throw new Error(`Error creating file in '${ temp }' directory.`)
+      }
+    }
+  }
 }

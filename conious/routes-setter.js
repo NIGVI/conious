@@ -23,8 +23,15 @@
 
 const fs = require('fs')
 
-const { getBodySetting, getParamsSetting } = require('./scheme/scheme-generator.js')
-const { testOnRegExp, serializeToRegExp } = require('./regexp.js')
+const {
+	getBodySetting,
+	getParamsSetting,
+	getFilesSetting
+} = require('./scheme/scheme-generator.js')
+const {
+	testOnRegExp,
+	serializeToRegExp
+} = require('./regexp.js')
 
 const minute = 1000 * 60
 const hour = minute * 60
@@ -57,6 +64,7 @@ class RoutesSetter {
 	constructor(options) {
 		const {
 			env,
+			temp,
 			basePath,
 			response,
 			errorHandler,
@@ -76,6 +84,7 @@ class RoutesSetter {
 		this.errorHandler = errorHandler
 		this.response = response
 		this.options = topOptions
+		this.temp = temp
 		this.env = env
 	}
 
@@ -138,7 +147,7 @@ class RoutesSetter {
 	#set(topMethod, optionsOrPath, nullOrOptionsOrHandler) {
 
 		// get options
-		let path, handler, method, output, params, body, cache
+		let path, handler, method, output, params, body, cache, files
 		const firstArgIsPath = typeof optionsOrPath === 'string' || optionsOrPath instanceof RegExp
 		const firstArgIsOptions = optionsOrPath && typeof optionsOrPath === 'object' && !(optionsOrPath instanceof Function)
 		const twoArgIsFunction = nullOrOptionsOrHandler instanceof Function
@@ -148,7 +157,7 @@ class RoutesSetter {
 			path = optionsOrPath
 
 			if (twoArgIsOptions) {
-				({ method, output, handler, params, body, cache } = nullOrOptionsOrHandler)
+				({ method, output, handler, params, body, cache, files } = nullOrOptionsOrHandler)
 			}
 			if (twoArgIsFunction) {
 				handler = nullOrOptionsOrHandler
@@ -158,7 +167,7 @@ class RoutesSetter {
 			}
 		}
 		if (firstArgIsOptions) {
-			({ path, method, output, handler, params, body, cache } = optionsOrPath)
+			({ path, method, output, handler, params, body, cache, files } = optionsOrPath)
 		}
 		if (!path) {
 			throw new Error('No path in controllers setter method.')
@@ -171,6 +180,9 @@ class RoutesSetter {
 
 		const settings = {}
 
+		if (files) {
+			Object.assign(settings, { files: getFilesSetting(files, this.temp) })
+		}
 		if (params) {
 			Object.assign(settings, { params: getParamsSetting(params) })
 		}

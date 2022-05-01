@@ -1,5 +1,6 @@
 
 
+const fs = require('fs')
 const { RoutesSetter } = require('./routes-setter.js')
 const { Response } = require('./response.js')
 const { getValidData } = require('./scheme/get-valid-data.js')
@@ -25,6 +26,7 @@ class Conious extends RoutesSetter {
 			defaultMethod,
 			defaultOutput,
 			basePath,
+			temp = null,
 			env = {}
 		} = options
 
@@ -67,6 +69,7 @@ class Conious extends RoutesSetter {
 			basePath,
 			response,
 			options,
+			temp,
 			env
 		}
 
@@ -92,13 +95,15 @@ class Conious extends RoutesSetter {
 		let fullCloseResolve
 		const waitingFullClose = new Promise(res => fullCloseResolve = res)
 
+		let readyRequestData = {
+			params: null,
+			body: { raw: null, json: null, form: null, requestFile: null }
+		}
+
 		try {
 			// global env of the request
 			let url, urlParams, parentPaths = {}
-			let readyRequestData = {
-				params: null,
-				body: { raw: null, json: null, form: null }
-			}
+
 			const send = this.response.getResponseFunction.bind(this.response)
 			const originalURL = req.url
 
@@ -237,7 +242,7 @@ class Conious extends RoutesSetter {
 
 							if (ok) {
 								const settingFromParent = {
-									parentPaths: Object.assign({}, paths, parentPaths),
+									parentPaths: Object.assign({}, parentPaths, paths),
 									readyRequestData,
 									urlParams,
 									url
@@ -270,7 +275,13 @@ class Conious extends RoutesSetter {
 						// controller calling
 						if (!controller.isBranch) {
 
-							const { ok, body, params, newReadyData } = await getValidData(req, controller, urlParams, readyRequestData)
+							const {
+								ok,
+								body,
+								files,
+								params,
+								newReadyData
+							} = await getValidData(req, controller, urlParams, readyRequestData)
 							readyRequestData = newReadyData
 
 							if (ok) {
@@ -285,8 +296,9 @@ class Conious extends RoutesSetter {
 	
 								const controllerOptions = {
 									controllerPass: ()  => { passCurrentController = true },
-									paths: Object.assign({}, paths, parentPaths),
+									paths: Object.assign({}, parentPaths, paths),
 									params: params,
+									files: files,
 									body: body,
 									send: send,
 									env: this.env,
@@ -370,6 +382,10 @@ class Conious extends RoutesSetter {
 				return { matched: false, send, waitingFullClose, err: err }
 			}
 			this.response.send(req, res, code500, { output: this.defaultOutput }, fullCloseResolve)
+		} finally {
+			if (this.isRoot && readyRequestData.body.requestFile) {
+				fs.rm(readyRequestData.body.requestFile, () => {})
+			}
 		}
 	}
 
