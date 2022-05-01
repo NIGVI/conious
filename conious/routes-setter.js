@@ -1,26 +1,5 @@
 
 
-/**
- * @callback middleware
- * 
- * @argument {{
- * 	req: http.IncomingMessage,
- * 	res: http.ServerResponse,
- * }} options
- */
-
-/**
- * @callback controller
- * 
- * @argument {{
- * 	path: object,
- * 	params: null | string | object,
- * 	body: null | object
- * }} options
- * 
- * @returns {string|Readable}
- */
-
 const fs = require('fs')
 
 const {
@@ -51,17 +30,7 @@ class RoutesSetter {
 	defaultMethod = 'ANY'
 	defaultOutput = 'none'
 
-	/**
-	 * @param {{
-	 * 	env: object
-	 * 	options: object
-	 * 	basePath?: string
-	 * 	errorHandler?: Function
-	 * 	defaultMethod?: string
-	 * 	defaultOutput?: string
-	 * 	responseFunctions: object
-	 * }} options 
-	 */
+
 	constructor(options) {
 		const {
 			env,
@@ -94,14 +63,6 @@ class RoutesSetter {
 	}
 
 
-	/**
-	 * 
-	 * @param {middleware|{
-	 * 	handler: middleware
-	 * 	method: string
-	 * 	output: string
-	 * }} optionsOrFunction 
-	 */
 	entry(optionsOrFunction) {
 
 		// get options

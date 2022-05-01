@@ -102,8 +102,14 @@ class Response {
 				finish()
 				return
 			}
-	
-	
+
+			if (result === undefined) {
+				this.#setContentType(res, settings)
+				res.end('')
+				finish()
+				return
+			}
+
 			err = new Error(`Response type error. Type: ${ typeof result }. Handler result: ${ result }`)
 			this.errorHandler({req, res, err})
 		} catch (error) {

@@ -9,15 +9,6 @@ const { StaticController } = require('./static-controller')
 
 class Conious extends RoutesSetter {
 
-	/**
-	 * @param {http.Server} server 
-	 * @param {{
-	 * 	env?: object
-	 * 	defaultMethod?: string
-	 * 	defaultOutput?: string
-	 * 	defaultHandlers: Function[]
-	 * }} options 
-	 */
 	constructor(server, options = {}) {
 
 		const {
