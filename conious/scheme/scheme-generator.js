@@ -22,6 +22,11 @@ module.exports = {
 	},
 
   getFilesSetting(files, temp) {
+    if (typeof files.temp === 'string') {
+      temp = files.temp
+    }
+    createTempFolder(temp)
+
     if (typeof files == 'object' && files !== null) {
       return getFilesSetting(files, temp)
     }
@@ -30,7 +35,7 @@ module.exports = {
         isScheme: false,
         allParse: true,
         files: null,
-        temp: temp
+        temp
       }
     }
     throw new Error('Option "files" must be string or object.')
@@ -42,11 +47,6 @@ module.exports = {
 
 function getFilesSetting(files, temp) {
   const filesScheme = {}
-
-  if (typeof files.temp === 'string') {
-    temp = files.temp
-  }
-  createTempFolder(temp)
 
   const isArray = files.scheme instanceof Array
   const isObject = typeof files.scheme === 'object' && files.scheme !== null && !isArray
@@ -82,7 +82,7 @@ function getFilesSetting(files, temp) {
         field = setting
       }
 
-      if (typeof field === 'string') {
+      if (typeof field !== 'string') {
         throw new Error('Option "files.scheme" must be string array or object array.')
       }
   

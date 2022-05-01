@@ -1,6 +1,7 @@
 
 
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 const crypto = require('crypto')
 const busboy = require('busboy')
@@ -52,7 +53,7 @@ async function formXWWWParsing(req, setting, reusedBody) {
 
 // form multipart functions
 async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) {
-  const bb = busboy({ headers: req.headers })
+  const bb = busboy({ headers: req.headers, defParamCharset: 'utf8' })
   const fieldsContainer = {}
   let filesContainer = null
 
@@ -76,11 +77,8 @@ async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) 
   // close and reuse control
   const closePromise = createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody)
 
-  if (!reusedBody.requestFile && reusedBody.raw === null) {
+  if (!reusedBody.requestFile) {
     req.pipe(bb)
-  }
-  if (!reusedBody.requestFile && reusedBody.raw !== null) {
-    bb.end(reusedBody.raw)
   }
   if (reusedBody.requestFile) {
     const reqBodyFromFile = fs.createReadStream(reusedBody.requestFile)
@@ -88,7 +86,7 @@ async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) 
   }
   await closePromise
 
-  if (reusedBody.form === null) {
+  if (reusedBody.form === null) { // todo no realize
     reusedBody.form = JSON.parse(JSON.stringify(fieldsContainer))
   }
   // end close and reuse control
@@ -237,7 +235,8 @@ function createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody) {
   let rejectPromise
 
   const promise = new Promise((resolve, reject) => {
-    resolvePromise = resolve; rejectPromise = reject
+    resolvePromise = resolve
+    rejectPromise = reject
   })
 
   bb.on('close', () => {
@@ -247,12 +246,12 @@ function createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody) {
   })
 
 
-  if (reusedBody.requestFile || reusedBody.raw) {
+  if (reusedBody.requestFile) {
     countCompleted++
   }
   // create file for reuse body stream
-  if (!reusedBody.requestFile && filesSetting?.temp) {
-    writingFileWithRandomName(req, filesSetting.temp, 'request-body')
+  if (!reusedBody.requestFile) {
+    writingFileWithRandomName(req, filesSetting?.temp ?? os.tmpdir(), 'conious-request-body')
       .then((fileInfo) => {
         reusedBody.requestFile = fileInfo.filePath
 
@@ -265,21 +264,21 @@ function createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody) {
   // end create file for reuse body stream
 
   // create reuse variable if no temp directory
-  if (
-      !reusedBody.requestFile && !filesSetting?.temp &&
-      reusedBody.raw === null
-  ) {
-    (async () => {
-      const chunks = []
-      for await (const chunk of req) {
-        chunks.push(chunk)
-      }
-      reusedBody.raw = Buffer.concat(chunks)
-      if (++countCompleted === 2) {
-        resolvePromise(true)
-      }
-    })()
-  }
+  // if (
+  //     !reusedBody.requestFile && !filesSetting?.temp &&
+  //     reusedBody.raw === null
+  // ) {
+  //   (async () => {
+  //     const chunks = []
+  //     for await (const chunk of req) {
+  //       chunks.push(chunk)
+  //     }
+  //     reusedBody.raw = Buffer.concat(chunks)
+  //     if (++countCompleted === 2) {
+  //       resolvePromise(true)
+  //     }
+  //   })()
+  // }
   // end create reuse variable if no temp directory
 
   return promise
