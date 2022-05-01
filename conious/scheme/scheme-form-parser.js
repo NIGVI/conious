@@ -17,120 +17,109 @@ module.exports = {
 
 
 // form xwww function
-async function formXWWWParsing(req, setting, readyBody, newReadyBody) {
+async function formXWWWParsing(req, setting, reusedBody) {
   if (setting?.isParse) {
 
-    if (!readyBody.form) {
-      const rawFields = await getRawBody(req)
-      const fields = getParamsOrFieldFromRawString(rawFields)
-      newReadyBody.form = fields
+    // getting raw body
+    if (reusedBody.raw === null) {
+      reusedBody.raw = await getRawDataFromStream(req)
     }
-    const fields = JSON.parse(JSON.stringify(newReadyBody.form))
+    // end getting raw body
+
+    // getting form
+    if (!reusedBody.form) {
+      reusedBody.form = getParamsOrFieldFromRawString(reusedBody.raw.toString())
+    }
+    const fields = JSON.parse(JSON.stringify(reusedBody.form))
+    // end getting form
 
     if (setting.isParse) {
       const { ok, result: body } = schemeMappingForFormOrParams(setting.scheme, fields, fields)
-      return {
-        ok,
-        body,
-        newReadyBody
-      }
+      return { ok, body }
     }
 
-    return {
-      ok: true,
-      body: fields,
-      newReadyBody
-    }
+    return { ok: true, body: fields }
   }
 
   if (setting?.isLoad) {
-    return {
-      ok: true,
-      body: null,
-      newReadyBody
-    }
+    return { ok: true, body: null }
   }
 
-  return {
-    ok: true,
-    body: null,
-    newReadyBody
-  }
-}
-
-
-async function getRawBody(req) {
-  const chunks = []
-  for await (const chunk of req) {
-    chunks.push(chunk)
-  }
-  const body = Buffer.concat(chunks).toString()
-
-  return body
+  return { ok: true, body: null }
 }
 // end form xwww function
 
 
 // form multipart functions
-async function formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody) {
+async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) {
   const bb = busboy({ headers: req.headers })
   const fieldsContainer = {}
-  const filesContainer = {}
+  let filesContainer = null
 
-  // getting data
+  if (filesSetting) {
+    filesContainer = {}
+
+    if (filesSetting.isScheme) {
+      filesContainer = Object.fromEntries(
+        Object.entries(filesSetting.files).map(
+          el => [el[0], el[1].type === 'array' ? [] : null]
+        )
+      )
+    }
+  }
+
+  // getting fields and files
   setFormFieldsHandler(bb, fieldsContainer)
   setFormFilesHandler(bb, filesContainer, filesSetting)
-  // end getting data
+  // end getting fields and files
 
   // close and reuse control
-  const closePromise = createEndPromise(bb, req, filesSetting, readyBody, newReadyBody)
+  const closePromise = createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody)
 
-  if (!readyBody.requestFile) {
+  if (!reusedBody.requestFile && reusedBody.raw === null) {
     req.pipe(bb)
   }
-  if (readyBody.requestFile) {
-    const reqBodyFromFile = fs.createReadStream(readyBody.requestFile)
+  if (!reusedBody.requestFile && reusedBody.raw !== null) {
+    bb.end(reusedBody.raw)
+  }
+  if (reusedBody.requestFile) {
+    const reqBodyFromFile = fs.createReadStream(reusedBody.requestFile)
     reqBodyFromFile.pipe(bb)
   }
   await closePromise
 
-  if (!readyBody.form) {
-    newReadyBody.form = JSON.parse(JSON.stringify(fieldsContainer))
+  if (reusedBody.form === null) {
+    reusedBody.form = JSON.parse(JSON.stringify(fieldsContainer))
   }
   // end close and reuse control
 
   // value returning and validate data
-  const files = Object.entries(filesContainer).length === 0 ? null : filesContainer
 
   if (bodySetting?.scheme) {
     const { ok, result: fields } = schemeMappingForFormOrParams(bodySetting.scheme, fieldsContainer, fieldsContainer)
     return {
       ok,
       body: fields,
-      files: files,
-      newReadyBody
+      files: filesContainer
     }
   } else if (bodySetting?.mode === 'parse') {
     return {
       ok: true,
       body: fieldsContainer,
-      files: files,
-      newReadyBody
+      files: filesContainer
     }
-  } else if (files !== null) {
+  } else if (filesContainer !== null) {
     return {
       ok: true,
       body: null,
-      files: files,
-      newReadyBody
+      files: filesContainer
     }
   }
 
   return {
     ok: false,
     body: null,
-    files: null,
-    newReadyBody
+    files: null
   }
   // end value returning and validate data
 }
@@ -151,71 +140,98 @@ function setFormFieldsHandler(bb, fieldsContainer) {
 
 
 function setFormFilesHandler(bb, filesContainer, filesSetting) {
-  if (
-    typeof filesSetting === 'object' && filesSetting !== null &&
-    (filesSetting.isScheme || filesSetting.allParse)
-  ) {
+  if (filesContainer) {
+
     if (filesSetting.isScheme) {
       bb.on('file', async (name, file, info) => {
         const { filename, encoding, mimeType } = info
-        const fileInfo = {
-          filename,
-          mimeType,
-          encoding
-        }
 
-        if (filesSetting.files[name]) {
-          const fileSetting = filesSetting.files[name]
-          const isArray = fileSetting.type === 'array'
+        if (!filename) file.resume()
 
-          if (isArray && !filesContainer[name]) {
-            filesContainer[name] = []
+        if (filename && filesSetting.files[name]) {
+          
+          const fileInfo = {
+            filename,
+            mimeType,
+            encoding
           }
+
+          const isArray = filesContainer[name] instanceof Array
+
           if (isArray) {
             filesContainer[name].push(fileInfo)
           }
-          if (!isArray && filesContainer[name]) {
+          if (!isArray && filesContainer[name] !== null) {
             file.resume()
             return
           }
-          if (!isArray && !filesContainer[name]) {
+          if (!isArray && filesContainer[name] === null) {
             filesContainer[name] = fileInfo
           }
           
-          const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
+          // getting buffer if no temp directory
+          if (!filesSetting.temp) {
+            fileInfo.buffer = await getRawDataFromStream(file)
+            return
+          }
+          // end getting buffer if no temp directory
 
-          fileInfo.path = savedFileInfo.filePath
-          fileInfo.savedFilename = savedFileInfo.filename
-        } else {
-          file.resume()
+          // download in file
+          if (filesSetting.temp) {
+            const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
+
+            fileInfo.path = savedFileInfo.filePath
+            fileInfo.savedFilename = savedFileInfo.filename
+            return
+          }
+          // end download in file
         }
+        file.resume()
       })
     }
+
     if (filesSetting.allParse) {
       bb.on('file', async (name, file, info) => {
         const { filename, encoding, mimeType } = info
-        const fileInfo = {
-          filename,
-          mimeType,
-          encoding
+
+        if (!filename) file.resume()
+
+        if (filename) {
+          const fileInfo = {
+            filename,
+            mimeType,
+            encoding
+          }
+  
+          if (!filesContainer[name]) {
+            filesContainer[name] = []
+          }
+          filesContainer[name].push(fileInfo)
+
+          // getting buffer if no temp directory
+          if (!filesSetting.temp) {
+            fileInfo.buffer = await getRawDataFromStream(file)
+            return
+          }
+          // end getting buffer if no temp directory
+
+          // download in file
+          if (filesSetting.temp) {
+            const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
+
+            fileInfo.path = savedFileInfo.filePath
+            fileInfo.savedFilename = savedFileInfo.filename
+            return
+          }
+          // end download in file
         }
-
-        if (!filesContainer[name]) {
-          filesContainer[name] = []
-        }
-        filesContainer[name].push(fileInfo)
-        const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
-
-        fileInfo.path = savedFileInfo.filePath
-        fileInfo.savedFilename = savedFileInfo.filename
-
       })
     }
   }
 }
 
 
-function createEndPromise(bb, req, filesSetting, readyBody, newReadyBody) {
+function createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody) {
   let countCompleted = 0
   let resolvePromise
   let rejectPromise
@@ -230,14 +246,15 @@ function createEndPromise(bb, req, filesSetting, readyBody, newReadyBody) {
     }
   })
 
-  // create file for reuse body stream
-  if (readyBody.requestFile) {
+
+  if (reusedBody.requestFile || reusedBody.raw) {
     countCompleted++
   }
-  if (!readyBody.requestFile) {
+  // create file for reuse body stream
+  if (!reusedBody.requestFile && filesSetting?.temp) {
     writingFileWithRandomName(req, filesSetting.temp, 'request-body')
       .then((fileInfo) => {
-        newReadyBody.requestFile = fileInfo.filePath
+        reusedBody.requestFile = fileInfo.filePath
 
         if (++countCompleted === 2) {
           resolvePromise(true)
@@ -246,6 +263,24 @@ function createEndPromise(bb, req, filesSetting, readyBody, newReadyBody) {
       .catch(rejectPromise)
   }
   // end create file for reuse body stream
+
+  // create reuse variable if no temp directory
+  if (
+      !reusedBody.requestFile && !filesSetting?.temp &&
+      reusedBody.raw === null
+  ) {
+    (async () => {
+      const chunks = []
+      for await (const chunk of req) {
+        chunks.push(chunk)
+      }
+      reusedBody.raw = Buffer.concat(chunks)
+      if (++countCompleted === 2) {
+        resolvePromise(true)
+      }
+    })()
+  }
+  // end create reuse variable if no temp directory
 
   return promise
 }
@@ -281,4 +316,15 @@ async function writingFileWithRandomName(readStream, temp, prefix) {
       }
     }
   }
+}
+// end form multipart functions
+
+
+async function getRawDataFromStream(req) {
+  const chunks = []
+  for await (const chunk of req) {
+    chunks.push(chunk)
+  }
+  const body = Buffer.concat(chunks)
+  return body
 }

@@ -4,26 +4,20 @@ const { formMultipartParsing, formXWWWParsing } = require('./scheme-form-parser.
 
 
 module.exports = {
-  async bodyParser(req, bodySetting, filesSetting,  readyBody) {
+  async bodyParser(req, bodySetting, filesSetting, reusedBody) {
     if (bodySetting?.isLoad) {
 
       const mode = bodySetting.mode
-      const newReadyBody = {
-        rew: readyBody.raw,
-        json: readyBody.json,
-        form: readyBody.form
-      }
 
       // raw
       if (mode === 'raw') {
-        if (!readyBody.raw) {
-          newReadyBody.raw = await getRawBody(req)
+        if (!reusedBody.raw) {
+          reusedBody.raw = await getRawBody(req)
         }
 
         return {
           ok: true,
-          body: newReadyBody.raw,
-          newReadyBody: newReadyBody
+          body: reusedBody.raw.toString()
         }
       }
 
@@ -36,23 +30,22 @@ module.exports = {
 
       // json
       if (jsonParsed) {
-        return await jsonParsing(req, bodySetting, readyBody, newReadyBody)
+        return await jsonParsing(req, bodySetting, reusedBody)
       }
 
       // form multipart
       if (formMultipartParsed) {
-        return await formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody)
+        return await formMultipartParsing(req, bodySetting, filesSetting, reusedBody)
       }
 
       // form multipart
       if (formXWWWParsed) {
-        return await formXWWWParsing(req, bodySetting, readyBody, newReadyBody)
+        return await formXWWWParsing(req, bodySetting, reusedBody)
       }
 
       return {
         ok: mode === 'parse',
-        body: null,
-        newReadyBody: readyBody
+        body: null
       }
     }
 
@@ -61,61 +54,50 @@ module.exports = {
       (filesSetting.isScheme || filesSetting.allParse) &&
       req.headers['content-type'] && /multipart\/form-data/.test(req.headers['content-type'])
     ) {
-      const newReadyBody = {
-        rew: readyBody.raw,
-        json: readyBody.json,
-        form: readyBody.form,
-        requestFile: readyBody.requestFile
-      }
-      return await formMultipartParsing(req, bodySetting, filesSetting, readyBody, newReadyBody)
+      return await formMultipartParsing(req, bodySetting, filesSetting, reusedBody)
     }
 
     return {
       ok: true,
-      body: null,
-      newReadyBody: readyBody
+      body: null
     }
   }
 }
 
 
 // json functions
-async function jsonParsing(req, setting, readyBody, newReadyBody) {
-  const raw = await getRawBody(req)
-  newReadyBody.raw = raw
-  let json = null
-  try {
-    json = JSON.parse(raw)
-  } catch (err) {
-    json = err
+async function jsonParsing(req, setting, reusedBody) {
+
+  // getting raw body
+  if (reusedBody.raw === null) {
+    reusedBody.raw = await getRawBody(req)
   }
-  if (!(json instanceof Error)) {
-    newReadyBody.json = json
+  // end getting raw body
+
+  // getting json
+  if (reusedBody.json === null) {
+    try {
+      reusedBody.json = { value: JSON.parse(reusedBody.raw.toString()), err: null }
+    } catch (err) {
+      reusedBody.json = { value: null, err: err }
+    }
+  }
+  const json = JSON.parse(JSON.stringify(reusedBody.json.value))
+  // end getting json
+
+  // returning and validation
+  if (!reusedBody.json.err) {
 
     if (setting.mode === 'parse' && !setting.scheme) {
-      return {
-        ok: true,
-        body: JSON.parse(JSON.stringify(json)),
-        newReadyBody
-      }
+      return { ok: true, body: json }
     }
 
-    const {
-      ok,
-      result: body
-    } = schemaMappingWithJson(setting.scheme, JSON.parse(JSON.stringify(json)))
+    const { ok, result: body } = schemaMappingWithJson(setting.scheme, json)
 
-    return {
-      ok,
-      body,
-      newReadyBody
-    }
+    return { ok, body }
   }
-  return {
-    ok: setting.mode === 'parse',
-    body: null,
-    newReadyBody
-  }
+  return { ok: setting.mode === 'parse', body: null }
+  // end returning and validation
 }
 
 async function getRawBody(req) {
@@ -123,8 +105,7 @@ async function getRawBody(req) {
   for await (const chunk of req) {
     chunks.push(chunk)
   }
-  const body = Buffer.concat(chunks).toString()
-
+  const body = Buffer.concat(chunks)
   return body
 }
 

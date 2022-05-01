@@ -7,44 +7,40 @@ const {
 
 
 module.exports = {
-  paramsParser(setting, rawParams, readyParams) {
+  paramsParser(setting, rawParams, reusedData) {
 
     if (setting?.isParse) {
-      let newReadyParams = null
-  
-      if (!readyParams) {
-        const params = getParamsOrFieldFromRawString(rawParams)
-        newReadyParams = params
-      } else {
-        newReadyParams = readyParams
-      }
-      const resultParams = JSON.parse(JSON.stringify(newReadyParams))
-  
 
+      // getting params
+      if (reusedData.params === null) {
+        reusedData.params = getParamsOrFieldFromRawString(rawParams)
+      }
+      const resultParams = JSON.parse(JSON.stringify(reusedData.params))
+      // end getting params
+
+      // returning and validation
       if (setting.isParse) {
         const { ok, result: params } = schemeMappingForFormOrParams(setting.scheme, resultParams, new URLSearchParams(rawParams))
-        return { ok, params, newReadyParams }
+        return { ok, params }
       }
   
       return {
         ok: true,
-        params: resultParams,
-        newReadyParams
+        params: resultParams
       }
+      // end returning and validation
     }
   
     if (setting?.isLoad) {
       return {
         ok: true,
-        params: rawParams,
-        newReadyBody: readyParams
+        params: rawParams
       }
     }
   
     return {
       ok: true,
-      params: null,
-      newReadyParams: readyParams
+      params: null
     }
   }
 }

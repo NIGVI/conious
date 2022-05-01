@@ -26,7 +26,8 @@ const fs = require('fs')
 const {
 	getBodySetting,
 	getParamsSetting,
-	getFilesSetting
+	getFilesSetting,
+	createTempFolder
 } = require('./scheme/scheme-generator.js')
 const {
 	testOnRegExp,
@@ -86,6 +87,10 @@ class RoutesSetter {
 		this.options = topOptions
 		this.temp = temp
 		this.env = env
+
+		if (temp) {
+			createTempFolder(temp)
+		}
 	}
 
 

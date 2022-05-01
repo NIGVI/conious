@@ -6,34 +6,26 @@ const { bodyParser } = require('./scheme-body-parser.js')
 
 module.exports = {
 
-	async getValidData(req, settings, urlParams, readyRequestData) {
+	async getValidData(req, settings, urlParams, reusedData) {
 
-		const { ok: testOnParams, params, newReadyParams } = paramsParser(settings.params, urlParams, readyRequestData.params)
+		const { ok: testOnParams, params } = paramsParser(settings.params, urlParams, reusedData)
 
 		if (!testOnParams) {
 			return {
 				ok: false,
 				body: null,
 				files: null,
-				params: null,
-				newReadyBody: {
-					params: newReadyParams,
-					body: readyRequestData.body
-				}
+				params: null
 			}
 		}
 
-		const { ok: testOnBody, body, files, newReadyBody } = await bodyParser(req, settings.body, settings.files, readyRequestData.body)
+		const { ok: testOnBody, body, files } = await bodyParser(req, settings.body, settings.files, reusedData.body)
 		
 		return {
 			ok: testOnParams && testOnBody,
 			body: body instanceof Error ? null : body,
 			files: files ?? null,
-			params: params ?? urlParams,
-			newReadyData: {
-				params: newReadyParams,
-				body: newReadyBody
-			}
+			params: params ?? urlParams
 		}
 	}
 

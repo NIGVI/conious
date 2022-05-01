@@ -1,5 +1,7 @@
 
 
+const fs = require('fs')
+const path = require('path')
 const { Setting } = require('./setting.js')
 
 module.exports = {
@@ -32,7 +34,9 @@ module.exports = {
       }
     }
     throw new Error('Option "files" must be string or object.')
-  }
+  },
+
+  createTempFolder
 }
 
 
@@ -42,6 +46,7 @@ function getFilesSetting(files, temp) {
   if (typeof files.temp === 'string') {
     temp = files.temp
   }
+  createTempFolder(temp)
 
   const isArray = files.scheme instanceof Array
   const isObject = typeof files.scheme === 'object' && files.scheme !== null && !isArray
@@ -52,25 +57,33 @@ function getFilesSetting(files, temp) {
 
   if (isArray) {
     for (const setting of files.scheme) {
-      let field = ''
-
-      if (typeof setting.field === 'string') {
-        field = setting.field
-      } else {
-        throw new Error('Option "files.scheme[*].field" must be string.')
-      }
-
+      let field = null
       const fileScheme = {
-        type: 'one',
-        limit: 1024
+        type: 'one'
       }
+
+      if (typeof setting === 'object' && setting !== null) {
+        if (typeof setting.field === 'string') {
+          field = setting.field
+        } else {
+          throw new Error('Option "files.scheme[*].field" must be string.')
+        }
   
-      if (typeof setting.limit === 'number' && setting.limit >= 0) {
-        fileScheme.limit = setting.limit
+        if (typeof setting.limit === 'number' && setting.limit >= 0) { // todo realize
+          fileScheme.limit = setting.limit
+        }
+    
+        if (setting.type === 'array' || setting.type === 'one') {
+          fileScheme.type = setting.type
+        }
       }
-  
-      if (setting.type === 'array' || setting.type === 'one') {
-        fileScheme.type = setting.type
+
+      if (typeof setting === 'string' && setting.length > 0) {
+        field = setting
+      }
+
+      if (typeof field === 'string') {
+        throw new Error('Option "files.scheme" must be string array or object array.')
       }
   
       filesScheme[field] = fileScheme
@@ -98,13 +111,20 @@ function getFilesSetting(files, temp) {
     }
   }
 
-
-
   return {
     isScheme: true,
     allParse: false,
     files: filesScheme,
     temp: temp
+  }
+}
+
+function createTempFolder(temp) {
+  try {
+    const tempFs = fs.statSync(temp)
+    if (!tempFs.isDirectory()) throw new Error('')
+  } catch (err) {
+    fs.mkdirSync(temp, { recursive: true })
   }
 }
 

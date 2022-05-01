@@ -95,9 +95,14 @@ class Conious extends RoutesSetter {
 		let fullCloseResolve
 		const waitingFullClose = new Promise(res => fullCloseResolve = res)
 
-		let readyRequestData = {
+		let reusedData = {
 			params: null,
-			body: { raw: null, json: null, form: null, requestFile: null }
+			body: {
+				raw: null,
+				json: null,
+				form: null, 
+				requestFile: null
+			}
 		}
 
 		try {
@@ -111,7 +116,7 @@ class Conious extends RoutesSetter {
 				url = settingFromParent.url
 				urlParams = settingFromParent.urlParams
 				parentPaths = settingFromParent.parentPaths
-				readyRequestData = settingFromParent.readyRequestData
+				reusedData = settingFromParent.reusedData
 			} else {
 				const indexQuestionChar = req.url.indexOf('?')
 				const hasUrlParam = indexQuestionChar !== -1
@@ -237,13 +242,12 @@ class Conious extends RoutesSetter {
 						// branch calling
 						if (controller.isBranch) {
 
-							const { ok, newReadyData } = await getValidData(req, controller, urlParams, readyRequestData)
-							readyRequestData = newReadyData
+							const { ok } = await getValidData(req, controller, urlParams, reusedData)
 
 							if (ok) {
 								const settingFromParent = {
 									parentPaths: Object.assign({}, parentPaths, paths),
-									readyRequestData,
+									reusedData,
 									urlParams,
 									url
 								}
@@ -279,10 +283,8 @@ class Conious extends RoutesSetter {
 								ok,
 								body,
 								files,
-								params,
-								newReadyData
-							} = await getValidData(req, controller, urlParams, readyRequestData)
-							readyRequestData = newReadyData
+								params
+							} = await getValidData(req, controller, urlParams, reusedData)
 
 							if (ok) {
 
@@ -383,8 +385,8 @@ class Conious extends RoutesSetter {
 			}
 			this.response.send(req, res, code500, { output: this.defaultOutput }, fullCloseResolve)
 		} finally {
-			if (this.isRoot && readyRequestData.body.requestFile) {
-				fs.rm(readyRequestData.body.requestFile, () => {})
+			if (this.isRoot && reusedData.body.requestFile) {
+				fs.rm(reusedData.body.requestFile, () => {})
 			}
 		}
 	}
