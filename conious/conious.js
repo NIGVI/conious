@@ -89,7 +89,7 @@ class Conious extends RoutesSetter {
 
 
 	async _routing(req, res, settingFromParent) {
-		const pendingBeforeResponse = []
+		let pendingBeforeResponse = []
 		let matched = false
 
 		let fullCloseResolve
@@ -140,12 +140,13 @@ class Conious extends RoutesSetter {
 				const methodIsAnyOrEqual = middleware.method === 'ANY' || middleware.method === req.method
 				
 				if (methodIsAnyOrEqual) {
-					let resolveOfTheEnd, resolveOfTheMiddleware
+					let resolveOfTheEnd, resolveOfTheMiddleware, rejectOfTheMiddleware
 	
-					const pendingOfTheEnd = new Promise(res => resolveOfTheEnd = res)
+					const pendingOfTheEnd = new Promise(resolve => resolveOfTheEnd = resolve)
 	
-					const pending = new Promise((resolve) => {
+					const pending = new Promise((resolve, reject) => {
 						resolveOfTheMiddleware = resolve
+						rejectOfTheMiddleware = reject
 					})
 	
 					const next = () => {
@@ -164,11 +165,27 @@ class Conious extends RoutesSetter {
 					}
 	
 					const middlewarePromise = middleware.handler(middlewareArg)
-					const waiting = {
-						resolve: resolveOfTheEnd,
-						promise: middlewarePromise
+
+					const handlerIsPromise = middlewarePromise instanceof Promise
+
+					if (handlerIsPromise) {
+						const waiting = {
+							resolve: resolveOfTheEnd,
+							promise: middlewarePromise
+						}
+						pendingBeforeResponse.push(waiting)
+
+						middlewarePromise
+							.then(resolveOfTheMiddleware)
+							.catch((err) => {
+								pendingBeforeResponse = pendingBeforeResponse.filter(mp => mp !== waiting)
+								rejectOfTheMiddleware(err)
+							})
 					}
-					pendingBeforeResponse.push(waiting)
+
+					if (!handlerIsPromise) {
+						resolveOfTheMiddleware()
+					}
 	
 					await pending
 				}
@@ -320,9 +337,7 @@ class Conious extends RoutesSetter {
 									}
 								}
 	
-								matched = true
 								let result = controller.handler(controllerOptions)
-								matched = !passCurrentController
 					
 								if (result instanceof Promise) {
 									result = await result
@@ -403,7 +418,7 @@ class Conious extends RoutesSetter {
 				...middlewareNextArg,
 				waitingFullClose: () => {
 					waitingCall()
-					return waitingFullClose ? waitingCall : null
+					return waitingFullClose
 				}
 			}
 			try {
