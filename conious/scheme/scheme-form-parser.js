@@ -13,7 +13,8 @@ const {
 
 module.exports = {
   formMultipartParsing,
-  formXWWWParsing
+  formXWWWParsing,
+  createFilesContainer
 }
 
 
@@ -55,19 +56,7 @@ async function formXWWWParsing(req, setting, reusedBody) {
 async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) {
   const bb = busboy({ headers: req.headers, defParamCharset: 'utf8' })
   const fieldsContainer = {}
-  let filesContainer = null
-
-  if (filesSetting) {
-    filesContainer = {}
-
-    if (filesSetting.isScheme) {
-      filesContainer = Object.fromEntries(
-        Object.entries(filesSetting.files).map(
-          el => [el[0], el[1].type === 'array' ? [] : null]
-        )
-      )
-    }
-  }
+  const filesContainer = createFilesContainer(filesSetting)
 
   // getting fields and files
   setFormFieldsHandler(bb, fieldsContainer)
@@ -92,6 +81,17 @@ async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) 
   // end close and reuse control
 
   // value returning and validate data
+
+  if (filesContainer) {
+    const ok = validateRequiredFiles(filesContainer, filesSetting)
+    if (!ok) {
+      return {
+        ok: false,
+        body: null,
+        files: filesContainer
+      }
+    }
+  }
 
   if (bodySetting?.scheme) {
     const { ok, result: fields } = schemeMappingForFormOrParams(bodySetting.scheme, fieldsContainer, fieldsContainer)
@@ -120,6 +120,46 @@ async function formMultipartParsing(req, bodySetting, filesSetting, reusedBody) 
     files: null
   }
   // end value returning and validate data
+}
+
+
+function createFilesContainer(filesSetting) {
+  let filesContainer = null
+
+  if (filesSetting) {
+    filesContainer = {}
+
+    if (filesSetting.isScheme) {
+      filesContainer = Object.fromEntries(
+        Object.entries(filesSetting.files).map(
+          el => [el[0], el[1].type === 'array' ? [] : null]
+        )
+      )
+    }
+  }
+  return filesContainer
+}
+
+
+function validateRequiredFiles(filesContainer, filesSetting) {
+  let isTrue = true
+  
+  for (const [name, setting] of Object.entries(filesSetting.files)) {
+    if (setting.required) {
+      
+      if (setting.type === 'one' && !filesContainer[name]) {
+        isTrue = false
+        break
+      }
+
+      if (setting.type === 'array' && filesContainer[name].length === 0) {
+        isTrue = false
+        break
+      }
+    }
+  }
+
+  return isTrue
 }
 
 
@@ -216,7 +256,6 @@ function setFormFilesHandler(bb, filesContainer, filesSetting) {
           // download in file
           if (filesSetting.temp) {
             const savedFileInfo = await writingFileWithRandomName(file, filesSetting.temp)
-
             fileInfo.path = savedFileInfo.filePath
             fileInfo.savedFilename = savedFileInfo.filename
             return
@@ -263,24 +302,6 @@ function createEndPromiseAndPreparingReused(bb, req, filesSetting, reusedBody) {
   }
   // end create file for reuse body stream
 
-  // create reuse variable if no temp directory
-  // if (
-  //     !reusedBody.requestFile && !filesSetting?.temp &&
-  //     reusedBody.raw === null
-  // ) {
-  //   (async () => {
-  //     const chunks = []
-  //     for await (const chunk of req) {
-  //       chunks.push(chunk)
-  //     }
-  //     reusedBody.raw = Buffer.concat(chunks)
-  //     if (++countCompleted === 2) {
-  //       resolvePromise(true)
-  //     }
-  //   })()
-  // }
-  // end create reuse variable if no temp directory
-
   return promise
 }
 
@@ -298,9 +319,12 @@ async function writingFileWithRandomName(readStream, temp, prefix) {
         filePath = path.join(temp, name)
       }
 
-      const writableStream = fs.createWriteStream(filePath, { flags: 'wx' })
-
-      await readStream.pipe(writableStream)
+      await new Promise((resolve, reject) => {
+        const writableStream = fs.createWriteStream(filePath, { flags: 'wx' })
+        readStream.pipe(writableStream)
+        writableStream.on('error', reject)
+        readStream.on('end', resolve)
+      })
 
       return {
         filePath,

@@ -146,6 +146,7 @@ class RoutesSetter {
 
 		const settings = {}
 
+		// getting settings
 		if (files) {
 			Object.assign(settings, { files: getFilesSetting(files, this.temp) })
 		}
@@ -155,6 +156,19 @@ class RoutesSetter {
 		if (body) {
 			Object.assign(settings, { body: getBodySetting(body) })
 		}
+		// end getting settings
+
+		// testing of type in validation setting
+		if (settings.files && settings.body) {
+			if (settings.body.type === 'json') {
+				throw new Error('Body can\'t be json type together with files.')
+			}
+			if (settings.body.type === 'any' && settings.files.hasRequired) {
+				throw new Error('Files option with required files must by only form body type.')
+			}
+		}
+		// end testing of type in validation setting
+
 		settings.cache = this.#getCacheSetting(cache, day, false, true)
 
 		method = method?.toUpperCase() ?? topMethod

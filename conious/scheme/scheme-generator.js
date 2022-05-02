@@ -25,7 +25,9 @@ module.exports = {
     if (typeof files.temp === 'string') {
       temp = files.temp
     }
-    createTempFolder(temp)
+    if (temp) {
+      createTempFolder(temp)
+    }
 
     if (typeof files == 'object' && files !== null) {
       return getFilesSetting(files, temp)
@@ -47,6 +49,7 @@ module.exports = {
 
 function getFilesSetting(files, temp) {
   const filesScheme = {}
+  let hasRequired = false
 
   const isArray = files.scheme instanceof Array
   const isObject = typeof files.scheme === 'object' && files.scheme !== null && !isArray
@@ -59,7 +62,8 @@ function getFilesSetting(files, temp) {
     for (const setting of files.scheme) {
       let field = null
       const fileScheme = {
-        type: 'one'
+        type: 'one',
+        required: false
       }
 
       if (typeof setting === 'object' && setting !== null) {
@@ -76,6 +80,10 @@ function getFilesSetting(files, temp) {
         if (setting.type === 'array' || setting.type === 'one') {
           fileScheme.type = setting.type
         }
+
+        if (typeof setting.required === 'boolean') {
+          fileScheme.required = setting.required
+        }
       }
 
       if (typeof setting === 'string' && setting.length > 0) {
@@ -86,6 +94,10 @@ function getFilesSetting(files, temp) {
         throw new Error('Option "files.scheme" must be string array or object array.')
       }
   
+      if (fileScheme.required) {
+        hasRequired = true
+      }
+
       filesScheme[field] = fileScheme
     }
   }
@@ -96,15 +108,28 @@ function getFilesSetting(files, temp) {
     for (const [field, setting] of filesEntries) {
       const fileScheme = {
         type: 'one',
-        limit: 1024
+        limit: 1024,
+        required: false
+      }
+
+      if (typeof setting !== 'object' || setting === null) {
+        throw new Error(`Option "files.scheme['${ field }']" must be object.`)
       }
   
-      if (typeof setting.limit === 'number' && setting.limit >= 0) {
+      if (typeof setting.limit === 'number' && setting.limit >= 0) { // todo realize
         fileScheme.limit = setting.limit
       }
   
       if (setting.type === 'array' || setting.type === 'one') {
         fileScheme.type = setting.type
+      }
+
+      if (typeof setting.required === 'boolean') {
+        fileScheme.required = setting.required
+      }
+
+      if (fileScheme.required) {
+        hasRequired = true
       }
   
       filesScheme[field] = fileScheme
@@ -115,7 +140,8 @@ function getFilesSetting(files, temp) {
     isScheme: true,
     allParse: false,
     files: filesScheme,
-    temp: temp
+    temp: temp,
+    hasRequired
   }
 }
 

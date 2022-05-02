@@ -38,8 +38,18 @@ module.exports = {
         return await formMultipartParsing(req, bodySetting, filesSetting, reusedBody)
       }
 
-      // form multipart
+      // form application/x-www-form-urlencoded
       if (formXWWWParsed) {
+        if (
+          typeof filesSetting === 'object' && filesSetting !== null &&
+          (filesSetting.isScheme || filesSetting.allParse) && filesSetting.hasRequired
+        ) {
+          return {
+            ok: false,
+            body: null,
+            files: null
+          }
+        }
         return await formXWWWParsing(req, bodySetting, reusedBody)
       }
 
@@ -51,15 +61,28 @@ module.exports = {
 
     if (
       typeof filesSetting === 'object' && filesSetting !== null &&
-      (filesSetting.isScheme || filesSetting.allParse) &&
-      req.headers['content-type'] && /multipart\/form-data/.test(req.headers['content-type'])
+      (filesSetting.isScheme || filesSetting.allParse)
     ) {
-      return await formMultipartParsing(req, bodySetting, filesSetting, reusedBody)
+      if (
+        req.headers['content-type'] &&
+        /multipart\/form-data/.test(req.headers['content-type'])
+      ) {
+        return await formMultipartParsing(req, bodySetting, filesSetting, reusedBody)
+      }
+      
+      if (filesSetting.hasRequired) {
+        return {
+          ok: false,
+          body: null,
+          files: null
+        }
+      }
     }
 
     return {
       ok: true,
-      body: null
+      body: null,
+      files: null
     }
   }
 }
@@ -75,7 +98,7 @@ async function jsonParsing(req, setting, reusedBody) {
   // end getting raw body
 
   // getting json
-  if (reusedBody.json === null) {
+  if (reusedBody.json === null && !reusedBody.err) {
     try {
       reusedBody.json = { value: JSON.parse(reusedBody.raw.toString()), err: null }
     } catch (err) {
