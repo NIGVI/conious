@@ -1,6 +1,7 @@
 
 
-const { ReadStream } = require('fs')
+const fs = require('fs')
+const path = require('path')
 const { Readable } = require('stream')
 
 
@@ -30,24 +31,7 @@ class ResponseFunction {
 
 class Response {
 
-	#imageContentType = {
-		'svg': 'image/svg+xml',
-		'png': 'image/png',
-		'jpeg': 'image/jpeg',
-		'gif': 'image/gif',
-		'webp': 'image/webp'
-	}
-	#videoContentType = {
-		'mp4': 'video/mp4',
-		'webm': 'video/webm'
-	}
-	#webContentType = {
-		'html': 'text/html',
-		'js': 'application/javascript',
-		'css': 'text/css',
-		'json': 'application/json',
-	}
-	#contentType = Object.assign({}, this.#imageContentType, this.#videoContentType, this.#webContentType)
+	#contentType = require('./mime.json')
 
 	responseFunctions = {
 		code500: ({ res }) => {
@@ -141,6 +125,36 @@ class Response {
 
 	#setContentType(res, settings) {
 		res.setHeader('Content-Type', (this.#contentType[settings.output] ?? 'text/plain') + '; charset=UTF-8')
+	}
+
+	async getFileFromURLPath(fullPathFromURL) {
+		try {
+			const fileStat = await fs.promises.stat(fullPathFromURL)
+
+			if (fileStat.isFile()) {
+				const pathSegments = fullPathFromURL.split(path.sep)
+				let lastSegment = pathSegments.at(-1)
+
+				if (lastSegment === '') {
+					lastSegment = pathSegments.at(-2)
+				}
+
+				const splitLastSegment = lastSegment.split('.')
+				let format = ''
+
+				if (splitLastSegment.length !== 1) {
+					format = splitLastSegment.at(-1)
+				}
+
+				const stream = fs.createReadStream(fullPathFromURL)
+				return { ok: true, stream, outputType: format }
+			}
+
+			// TODO: realize index.html file path
+			return { ok: false, stream: null, outputType: null }
+		} catch {
+			return { ok: false, stream: null, outputType: null }
+		}
 	}
 
 }

@@ -1,6 +1,7 @@
 
 
 const fs = require('fs')
+const path = require('path')
 const { RoutesSetter } = require('./routes-setter.js')
 const { Response } = require('./response.js')
 const { getValidData } = require('./scheme/get-valid-data.js')
@@ -185,26 +186,22 @@ class Conious extends RoutesSetter {
 	
 	
 			// static file
+
 			if (req.method === 'GET') {
-				const endpoint = this.staticFile[url]
-	
-				if (endpoint) {
+				for (const staticRoute of this.staticRoutes) {
+					const [basePath, dirDirectory, settings] = staticRoute
 
-					const middlewareNextArg = {
-						matched: true,
-						type: 'static',
-						err: null
-					}
-					await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+					if (url.startsWith(basePath) && (url.length === basePath.length || url[basePath.length] === '/')) {
+						const filePathFromURL = url.split(basePath.length)
+						const fullPathFromURL = path.join(dirDirectory, filePathFromURL)
 
-					const result = endpoint.getStream()
-			
-					if (!this.isRoot) {
-						const send = this.response.send.bind(this.response, req, res, result, endpoint, fullCloseResolve)
-						return { matched: true, send, waitingFullClose, err: null }
+						const { isFind, stream, outputType } = await this.response.getFileFromURLPath(fullPathFromURL, settings)
+
+						if (isFind) {
+							await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+							this.response.send(req, res, stream, { output: outputType }, fullCloseResolve)
+						}
 					}
-					this.response.send(req, res, result, endpoint, fullCloseResolve)
-					return
 				}
 			}
 			// end static file

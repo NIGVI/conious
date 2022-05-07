@@ -24,6 +24,7 @@ class RoutesSetter {
 
 	entryHandlers = []
 	staticFile = Object.create(null)
+	staticRoutes = []
 	controllers = []
 
 	basePath = '/'
@@ -104,9 +105,6 @@ class RoutesSetter {
 	}
 	delete(...arg) {
 		this.#set('DELETE', ...arg)
-	}
-	update(...arg) {
-		this.#set('UPDATE', ...arg)
 	}
 
 
@@ -252,11 +250,10 @@ class RoutesSetter {
 		this.#setRoute(path, method, settings, branch, true)
 	}
 
-
 	async static(optionsOrPath, nullOrDirPath, nullOrCache) {
 
 		// set options
-		let dirPath, path, cache
+		let path, dirPath, cache
 
 		if (typeof optionsOrPath === 'string') {
 			if (typeof nullOrDirPath !== 'string') {
@@ -293,11 +290,17 @@ class RoutesSetter {
 		// end set options
 
 		const cacheSetting = this.#getCacheSetting(cache, month, true, false)
-		if (!path.endsWith('/')) {
-			path += '/'
+		if (path.endsWith('/')) {
+			path += path.slice(0, path.length - 1)
 		}
 
-		await this.staticController.setStaticPath(this.staticFile, path, dirPath, cacheSetting)
+		this.staticRoutes.push([
+			path,
+			dirPath,
+			{
+				cache: cacheSetting
+			}
+		])
 	}
 
 
