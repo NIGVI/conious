@@ -41,7 +41,6 @@ class RoutesSetter {
 			errorHandler,
 			defaultMethod,
 			defaultOutput,
-			staticController,
 			responseFunctions,
 			options: topOptions,
 		} = options
@@ -51,7 +50,6 @@ class RoutesSetter {
 		this.defaultOutput = defaultOutput?.toLowerCase() ?? this.defaultOutput
 		this.responseFunctions = responseFunctions
 		this.basePath = basePath ?? this.basePath
-		this.staticController = staticController
 		this.errorHandler = errorHandler
 		this.response = response
 		this.options = topOptions
@@ -222,7 +220,6 @@ class RoutesSetter {
 		defaultHandlers = Object.assign(
 			{}, this.responseFunctions,
 			{
-				_staticController: this.staticController,
 				errorHandler: this.errorHandler
 			},
 			defaultHandlers

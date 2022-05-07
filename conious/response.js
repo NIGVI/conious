@@ -87,7 +87,7 @@ class Response {
 				return
 			}
 
-			if (result === undefined) {
+			if (result === undefined || result === null) {
 				this.#setContentType(res, settings)
 				res.end('')
 				finish()

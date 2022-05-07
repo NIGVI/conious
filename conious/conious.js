@@ -5,7 +5,6 @@ const path = require('path')
 const { RoutesSetter } = require('./routes-setter.js')
 const { Response } = require('./response.js')
 const { getValidData } = require('./scheme/get-valid-data.js')
-const { StaticController } = require('./static-controller')
 
 
 class Conious extends RoutesSetter {
@@ -13,7 +12,6 @@ class Conious extends RoutesSetter {
 	constructor(server, options = {}) {
 
 		const {
-			_staticController,
 			defaultHandlers = {},
 			defaultMethod,
 			defaultOutput,
@@ -50,11 +48,9 @@ class Conious extends RoutesSetter {
 		}
 
 		const response = new Response(responseOptions)
-		const staticController = _staticController ?? new StaticController()
 
 		const routerOptions = {
 			responseFunctions,
-			staticController,
 			defaultMethod,
 			defaultOutput,
 			errorHandler,
@@ -72,7 +68,6 @@ class Conious extends RoutesSetter {
 		if (server) {
 			const close = server.close
 			server.close = (...arg) => {
-				staticController.deleteWatchers()
 				return close.call(server, ...arg)
 			}
 			server.on('request', this._routing.bind(this))
@@ -146,11 +141,23 @@ class Conious extends RoutesSetter {
 						return pendingOfTheEnd
 					}
 
+					let returnIsActive = false
+					let middlewareResult = null
+					let outputType = ''
+
+					const activateReturn = (type) => {
+						if (typeof type === 'string') {
+							outputType = type
+						}
+						returnIsActive = true
+					}
+
 					const middlewareArg = {
 						req,
 						res,
 						next,
 						send,
+						activateReturn,
 						env: this.env,
 						url,
 						fullURL
@@ -168,18 +175,38 @@ class Conious extends RoutesSetter {
 						pendingBeforeResponse.push(waiting)
 
 						middlewarePromise
-							.then(resolveOfTheMiddleware)
-							.catch((err) => {
+							.then(result => {
+								middlewareResult = result
+								resolveOfTheMiddleware()
+							})
+							.catch(err => {
 								pendingBeforeResponse = pendingBeforeResponse.filter(mp => mp !== waiting)
 								rejectOfTheMiddleware(err)
 							})
 					}
 
 					if (!handlerIsPromise) {
+						middlewareResult = middlewarePromise
 						resolveOfTheMiddleware()
 					}
 	
 					await pending
+
+					if (returnIsActive) {
+						const middlewareNextArg = {
+							matched: true,
+							type: 'middleware',
+							err: null
+						}
+						await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+
+						if (!this.isRoot) {
+							const send = this.response.send.bind(this.response, req, res, middlewareResult, { output: outputType }, fullCloseResolve)
+							return { matched: true, send, waitingFullClose, err: null }
+						}
+						this.response.send(req, res, middlewareResult, { output: outputType }, fullCloseResolve)
+						return
+					}
 				}
 			}
 			// end middleware
