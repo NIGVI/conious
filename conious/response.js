@@ -127,34 +127,47 @@ class Response {
 		res.setHeader('Content-Type', (this.#contentType[settings.output] ?? 'text/plain') + '; charset=UTF-8')
 	}
 
-	async getFileFromURLPath(fullPathFromURL) {
-		try {
-			const fileStat = await fs.promises.stat(fullPathFromURL)
+	async getFileFromURLPath(fullPathFromURL, settings) {
+		const fileStat = await fs.promises.stat(fullPathFromURL).catch(() => {})
 
-			if (fileStat.isFile()) {
-				const pathSegments = fullPathFromURL.split(path.sep)
-				let lastSegment = pathSegments.at(-1)
+		if (fileStat && fileStat.isFile()) {
+			const pathSegments = fullPathFromURL.split(path.sep)
+			let lastSegment = pathSegments.at(-1)
 
-				if (lastSegment === '') {
-					lastSegment = pathSegments.at(-2)
-				}
-
-				const splitLastSegment = lastSegment.split('.')
-				let format = ''
-
-				if (splitLastSegment.length !== 1) {
-					format = splitLastSegment.at(-1)
-				}
-
-				const stream = fs.createReadStream(fullPathFromURL)
-				return { ok: true, stream, outputType: format }
+			if (lastSegment === '') {
+				lastSegment = pathSegments.at(-2)
 			}
 
-			// TODO: realize index.html file path
-			return { ok: false, stream: null, outputType: null }
-		} catch {
-			return { ok: false, stream: null, outputType: null }
+			const splitLastSegment = lastSegment.split('.')
+			let format = ''
+
+			if (splitLastSegment.length !== 1) {
+				format = splitLastSegment.at(-1)
+			}
+
+			const stream = fs.createReadStream(fullPathFromURL)
+			return { isFind: true, stream, outputType: format }
 		}
+
+		if (settings.index) {
+			const fileStat = await fs.promises.stat(fullPathFromURL + 'index.html').catch(() => {})
+
+			if (fileStat && fileStat.isFile()) {
+				const stream = fs.createReadStream(fullPathFromURL + 'index.html')
+				return { isFind: true, stream, outputType: 'html' }
+			}
+		}
+
+		if (settings.short) {
+			const shortNameFile = await fs.promises.stat(fullPathFromURL.slice(0, fullPathFromURL.length - 1) + '.html').catch(() => {})
+			
+			if (shortNameFile && shortNameFile.isFile()) {
+				const stream = fs.createReadStream(fullPathFromURL.slice(0, fullPathFromURL.length - 1) + '.html')
+				return { isFind: true, stream, outputType: 'html' }
+			}
+		}
+
+		return { isFind: false, stream: null, outputType: null }
 	}
 
 }

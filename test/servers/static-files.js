@@ -6,44 +6,32 @@ const { Conious } = require('../../conious')
 
 module.exports = async (server) => {
 	
-	const options = {}
+	const options = {
+		defaultHandlers: {
+			errorHandler({ err }) {
+				setTimeout(() => {
+					console.log(err)
+				}, 2000)
+			}
+		}
+	}
 	const app = new Conious(server, options)
 	const dirName = path.join(__dirname, 'static')
 
-	await app.static({
-		path: 'static-1',
-		dirPath: dirName
-	})
-	await app.static('static-2', dirName)
+	await app.static('/static', dirName)
 
 	// index
-	await app.static({
-		path: 'index-shortcut-1',
-		dirPath: dirName,
-		index: true
-	})
-	await app.static('index-shortcut-2', dirName, {
+	await app.static('/index-shortcut', dirName, {
 		index: true
 	})
 
 	// name
-	await app.static({
-		path: 'name-shortcut-1',
-		dirPath: dirName,
-		shortName: true
-	})
-	await app.static('name-shortcut-2', dirName, {
+	await app.static('/name-shortcut', dirName, {
 		shortName: true
 	})
 
 	// all
-	await app.static({
-		path: 'shortcut-1',
-		dirPath: dirName,
-		index: true,
-		shortName: true
-	})
-	await app.static('shortcut-2', dirName, {
+	await app.static('/shortcut', dirName, {
 		index: true,
 		shortName: true
 	})

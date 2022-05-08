@@ -247,46 +247,28 @@ class RoutesSetter {
 		this.#setRoute(path, method, settings, branch, true)
 	}
 
-	async static(optionsOrPath, nullOrDirPath, nullOrCache) {
+	async static(path, dirPath, settings) {
 
 		// set options
-		let path, dirPath, cache
-
-		if (typeof optionsOrPath === 'string') {
-			if (typeof nullOrDirPath !== 'string') {
-				throw new Error('Invalid directory path.')
-			}
-
-			path = optionsOrPath
-			dirPath = nullOrDirPath
-			cache = nullOrCache
-		}
-
-		if (optionsOrPath && typeof optionsOrPath === 'object') {
-			({ path, dirPath, cache } = optionsOrPath)
-		}
+		let cache, index = false, short = false
 
 		if (typeof path !== 'string') {
-			throw new Error('No web path for static files.')
+			throw new Error('Invalid path.')
 		}
-		try {
-			if (typeof dirPath !== 'string') {
-				throw new Error('Invalid directory path.')
-			}
-			const dir = await fs.promises.stat(dirPath)
+		if (typeof dirPath !== 'string') {
+			throw new Error('Invalid directory path.')
+		}
 
-			if (dir.isFile()) {
-				throw new Error(`It is not directory on this path: ${ dirPath }`)
+		if (typeof settings === 'object' && settings !== null) {
+			if (settings.cache || settings.cache === 0) {
+				cache = settings.cache
 			}
-		} catch (err) {
-			if (err.code === 'ENOENT') {
-				throw new Error(`No directory on this path: ${ dirPath }.`)
-			}
-			throw err
+			index = !!settings.index
+			short = !!settings.shortName
 		}
 		// end set options
 
-		const cacheSetting = this.#getCacheSetting(cache, month, true, false)
+		const cacheSetting = this.#getCacheSetting(cache, month, false, false)
 		if (path.endsWith('/')) {
 			path += path.slice(0, path.length - 1)
 		}
@@ -295,7 +277,9 @@ class RoutesSetter {
 			path,
 			dirPath,
 			{
-				cache: cacheSetting
+				cache: cacheSetting,
+				index,
+				short
 			}
 		])
 	}

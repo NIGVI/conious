@@ -40,7 +40,6 @@ module.exports = {
 		return (done) => {
 			(async () => {
 				try {
-
 					
 					if (file) {
 						if (file.startsWith('/')) {

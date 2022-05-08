@@ -219,14 +219,27 @@ class Conious extends RoutesSetter {
 					const [basePath, dirDirectory, settings] = staticRoute
 
 					if (url.startsWith(basePath) && (url.length === basePath.length || url[basePath.length] === '/')) {
-						const filePathFromURL = url.split(basePath.length)
+
+						const filePathFromURL = url.slice(basePath.length)
 						const fullPathFromURL = path.join(dirDirectory, filePathFromURL)
 
 						const { isFind, stream, outputType } = await this.response.getFileFromURLPath(fullPathFromURL, settings)
 
 						if (isFind) {
+							const middlewareNextArg = {
+								matched: true,
+								type: 'static',
+								err: null
+							}
+
 							await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+
+							if (!this.isRoot) {
+								const send = this.response.send.bind(this.response, req, res, stream, { output: outputType }, fullCloseResolve)
+								return { matched: true, send, waitingFullClose, err: null }
+							}
 							this.response.send(req, res, stream, { output: outputType }, fullCloseResolve)
+							return
 						}
 					}
 				}

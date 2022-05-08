@@ -4,7 +4,7 @@
   "main": "conious/index.js",
   "scripts": {
     "test": "jest test",
-    "test-file": "jest test --findRelatedTests test/tests/parsing-tests/auto-test-from-markdown.test.js"
+    "test-file": "jest test --findRelatedTests test/tests/base-logic/static-files.test.js"
   },
   "author": "NIGVI",
   "devDependencies": {

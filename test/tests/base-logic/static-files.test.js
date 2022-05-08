@@ -18,8 +18,7 @@ afterAll(async () => {
 
 const tests = [
 	{
-		name: 'опциональном',
-		path: 'static-1',
+		path: 'static',
 		description: 'без параметров',
 		mode: {
 			index: false,
@@ -27,17 +26,7 @@ const tests = [
 		}
 	},
 	{
-		name: 'сокращенном',
-		path: 'static-2',
-		description: 'без параметров',
-		mode: {
-			index: false,
-			shortName: false
-		}
-	},
-	{
-		name: 'опциональном',
-		path: 'index-shortcut-1',
+		path: 'index-shortcut',
 		description: 'с сокращенным index.html',
 		mode: {
 			index: true,
@@ -45,17 +34,7 @@ const tests = [
 		}
 	},
 	{
-		name: 'сокращенном',
-		path: 'index-shortcut-2',
-		description: 'с сокращенным index.html',
-		mode: {
-			index: true,
-			shortName: false
-		}
-	},
-	{
-		name: 'опциональном',
-		path: 'name-shortcut-1',
+		path: 'name-shortcut',
 		description: 'с сокращенными именами',
 		mode: {
 			index: false,
@@ -63,26 +42,7 @@ const tests = [
 		}
 	},
 	{
-		name: 'сокращенном',
-		path: 'name-shortcut-2',
-		description: 'с сокращенными именами',
-		mode: {
-			index: false,
-			shortName: true
-		}
-	},
-	{
-		name: 'опциональном',
-		path: 'shortcut-1',
-		description: 'со всеми сокращениями',
-		mode: {
-			index: true,
-			shortName: true
-		}
-	},
-	{
-		name: 'сокращенном',
-		path: 'shortcut-2',
+		path: 'shortcut',
 		description: 'со всеми сокращениями',
 		mode: {
 			index: true,
@@ -92,9 +52,9 @@ const tests = [
 ]
 
 
-for (const { name, path, description, mode } of tests) {
+for (const { path, description, mode } of tests) {
 
-	describe(`Проверка маршрутизации статики ${ description } в ${ name } синтаксисе`, () => {
+	describe(`Проверка маршрутизации статики ${ description }`, () => {
 		describe(`Обычные запросы`, () => {
 			test(`GET /${ path }/index.html`, setRequest(request, `/${ path }/index.html`, {
 				file: `/static/index.html`,
@@ -182,19 +142,15 @@ for (const { name, path, description, mode } of tests) {
 		})
 
 		describe(`Запросы на несуществующие или сокращенные адреса`, () => {
-			test(`GET /${ path }`, setRequest(request, `/${ path }`, {
-				code: 404
-			}))
-			test(`GET /${ path }/`, setRequest(request, `/${ path }/`, {
-				code: 404
-			}))
-		
-			test(`GET /${ path }/index`, setRequest(request, `/${ path }/index`, {
-				code: 404
-			}))
 
 			// сокращенные через index.html
 			if (!mode.index) {
+				test(`GET /${ path }`, setRequest(request, `/${ path }`, {
+					code: 404
+				}))
+				test(`GET /${ path }/`, setRequest(request, `/${ path }/`, {
+					code: 404
+				}))
 				test(`GET /${ path }/about`, setRequest(request, `/${ path }/about`, {
 					code: 404
 				}))
@@ -205,6 +161,9 @@ for (const { name, path, description, mode } of tests) {
 
 			// сокращенные без расширения
 			if (!mode.shortName) {
+				test(`GET /${ path }/index`, setRequest(request, `/${ path }/index`, {
+					code: 404
+				}))	
 				test(`GET /${ path }/about/index`, setRequest(request, `/${ path }/about/index`, {
 					code: 404
 				}))
