@@ -1,6 +1,6 @@
 # conious
 
-TODO: Write a project description
+Routing library with request parsing and validation.
 
 ## Installation
 
@@ -9,18 +9,6 @@ TODO: Describe the installation process
 ## Usage
 
 TODO: Write usage instructions
-
-## Contributing
-
-TODO: Write
-
-## History
-
-TODO: Write history
-
-## Credits
-
-TODO: Write credits
 
 ## License
 

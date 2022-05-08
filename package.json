@@ -1,6 +1,6 @@
 {
   "name": "conious",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "conious/index.js",
   "scripts": {
     "test": "jest test",
