@@ -8,11 +8,11 @@ module.exports = async (server) => {
 	
 	const options = {
 		defaultHandlers: {
-			errorHandler({ err }) {
-				setTimeout(() => {
-					console.log(err)
-				}, 2000)
-			}
+			// errorHandler({ err }) {
+			// 	setTimeout(() => {
+			// 		console.log(err)
+			// 	}, 2000)
+			// }
 		}
 	}
 	const app = new Conious(server, options)

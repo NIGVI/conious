@@ -318,8 +318,8 @@ class Conious extends RoutesSetter {
 							}
 
 							// controller no valid request
-							if (!ok && controller.controllerNoValidRequest) {
-								// todo
+							if (!ok && controller.hasNoValid) {
+								// TODO: realize noValid for branch
 							}
 							// end controller no valid request
 						}
@@ -353,15 +353,15 @@ class Conious extends RoutesSetter {
 									res
 								}
 
-								if (controller.cache.innerMode) {
-									controllerOptions.setCache = (time) => {
-										if (time instanceof Date || typeof time === 'number') {
-											controller.cache.time = time
-											return true
-										}
-										return false
-									}
-								}
+								// if (controller.cache.innerMode) { TODO: realize inner cache
+								// 	controllerOptions.setCache = (time) => {
+								// 		if (time instanceof Date || typeof time === 'number') {
+								// 			controller.cache.time = time
+								// 			return true
+								// 		}
+								// 		return false
+								// 	}
+								// }
 	
 								let result = controller.handler(controllerOptions)
 					
@@ -386,8 +386,69 @@ class Conious extends RoutesSetter {
 							}
 
 							// controller no valid request
-							if (!ok && controller.controllerNoValidRequest) {
-								// todo
+							if (!ok && controller.hasNoValid) {
+
+								// no valid redirect
+								if (typeof controller.noValid.all === 'string') {
+									const middlewareNextArg = {
+										matched: true,
+										type: 'controller',
+										err: null
+									}
+									await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+
+									const redirect = send(controller.noValid.all)
+
+									if (!this.isRoot) {
+										const send = this.response.send.bind(this.response, req, res, redirect, controller, fullCloseResolve)
+										return { matched: true, send, waitingFullClose, err: null }
+									}
+									this.response.send(req, res, redirect, controller, fullCloseResolve)
+									return
+								}
+								// end no valid redirect
+
+								// no valid functions
+								if (controller.noValid.all instanceof Function) {
+									let passCurrentController = false
+	
+									const controllerOptions = {
+										controllerPass: ()  => { passCurrentController = true },
+										paths: Object.assign({}, parentPaths, paths),
+										params: params,
+										files: files,
+										body: body,
+										send: send,
+										env: this.env,
+										fullURL,
+										url,
+										req,
+										res
+									}
+
+									let result = controller.noValid.all(controllerOptions)
+					
+									if (result instanceof Promise) {
+										result = await result
+									}
+									if (!passCurrentController) {
+										const middlewareNextArg = {
+											matched: true,
+											type: 'controller',
+											err: null
+										}
+										await this.#closeMiddlewareHandler(req, res, pendingBeforeResponse, middlewareNextArg, waitingFullClose)
+
+										if (!this.isRoot) {
+											const send = this.response.send.bind(this.response, req, res, result, controller, fullCloseResolve)
+											return { matched: true, send, waitingFullClose, err: null }
+										}
+										this.response.send(req, res, result, controller, fullCloseResolve)
+										return
+									}
+								}
+								// end no valid functions
+
 							}
 							// end controller no valid request
 						}

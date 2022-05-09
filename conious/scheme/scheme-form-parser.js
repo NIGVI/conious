@@ -333,7 +333,6 @@ async function writingFileWithRandomName(readStream, temp, prefix) {
           : name
       }
     } catch (err) {
-      console.log('file name repeated')
       if (err.code !== 'EEXIST') {
         throw new Error(`Error creating file in '${ temp }' directory.`)
       }

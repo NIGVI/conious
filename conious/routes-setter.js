@@ -1,7 +1,5 @@
 
 
-const fs = require('fs')
-
 const {
 	getBodySetting,
 	getParamsSetting,
@@ -12,6 +10,7 @@ const {
 	testOnRegExp,
 	serializeToRegExp
 } = require('./regexp.js')
+const { RouteTail } = require('./route-tail.js')
 
 const minute = 1000 * 60
 const hour = minute * 60
@@ -29,7 +28,7 @@ class RoutesSetter {
 
 	basePath = '/'
 	defaultMethod = 'ANY'
-	defaultOutput = 'none'
+	defaultOutput = 'html'
 
 
 	constructor(options) {
@@ -90,19 +89,19 @@ class RoutesSetter {
 
 
 	set(...arg) {
-		this.#set(this.defaultMethod, ...arg)
+		return this.#set(this.defaultMethod, ...arg)
 	}
 	get(...arg) {
-		this.#set('GET', ...arg)
+		return this.#set('GET', ...arg)
 	}
 	post(...arg) {
-		this.#set('POST', ...arg)
+		return this.#set('POST', ...arg)
 	}
 	put(...arg) {
-		this.#set('PUT', ...arg)
+		return this.#set('PUT', ...arg)
 	}
 	delete(...arg) {
-		this.#set('DELETE', ...arg)
+		return this.#set('DELETE', ...arg)
 	}
 
 
@@ -170,7 +169,18 @@ class RoutesSetter {
 		method = method?.toUpperCase() ?? topMethod
 		settings.output = output?.toLowerCase() ?? this.defaultOutput
 
-		this.#setRoute(path, method, settings, handler)
+		const endpoint = this.#setRoute(path, method, settings, handler)
+
+		// no valid
+		endpoint.hasNoValid = false
+		endpoint.noValid = {
+			all: null,
+			body: null,
+			files: null,
+			params: null
+		}
+		return new RouteTail(endpoint, this.responseFunctions)
+		// end no valid
 	}
 
 
