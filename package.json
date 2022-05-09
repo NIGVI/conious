@@ -1,12 +1,11 @@
 {
   "name": "conious",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "conious/index.js",
   "scripts": {
     "test": "jest test",
     "test-file": "jest test --findRelatedTests test/tests/base-logic/static-files.test.js"
   },
-  "author": "NIGVI",
   "devDependencies": {
     "eslint": "^8.10.0",
     "jest": "^27.5.1",
@@ -14,5 +13,7 @@
   },
   "dependencies": {
     "busboy": "^1.6.0"
-  }
+  },
+  "homepage": "https://github.com/NIGVI/conious",
+  "author": "NIGVI"
 }
