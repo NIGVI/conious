@@ -221,7 +221,9 @@ class Conious extends RoutesSetter {
 					if (url.startsWith(basePath) && (url.length === basePath.length || url[basePath.length] === '/')) {
 
 						const filePathFromURL = url.slice(basePath.length)
-						const fullPathFromURL = path.join(dirDirectory, filePathFromURL)
+						const fullPathFromURL = filePathFromURL.endsWith('/')
+							? path.join(dirDirectory, filePathFromURL.slice(0, filePathFromURL.length - 1))
+							: path.join(dirDirectory, filePathFromURL)
 
 						const { isFind, stream, outputType } = await this.response.getFileFromURLPath(fullPathFromURL, settings)
 

@@ -150,19 +150,19 @@ class Response {
 		}
 
 		if (settings.index) {
-			const fileStat = await fs.promises.stat(fullPathFromURL + 'index.html').catch(() => {})
+			const fileStat = await fs.promises.stat(fullPathFromURL + '/index.html').catch(() => {})
 
 			if (fileStat && fileStat.isFile()) {
-				const stream = fs.createReadStream(fullPathFromURL + 'index.html')
+				const stream = fs.createReadStream(fullPathFromURL + '/index.html')
 				return { isFind: true, stream, outputType: 'html' }
 			}
 		}
 
 		if (settings.short) {
-			const shortNameFile = await fs.promises.stat(fullPathFromURL.slice(0, fullPathFromURL.length - 1) + '.html').catch(() => {})
+			const shortNameFile = await fs.promises.stat(fullPathFromURL + '.html').catch(() => {})
 			
 			if (shortNameFile && shortNameFile.isFile()) {
-				const stream = fs.createReadStream(fullPathFromURL.slice(0, fullPathFromURL.length - 1) + '.html')
+				const stream = fs.createReadStream(fullPathFromURL + '.html')
 				return { isFind: true, stream, outputType: 'html' }
 			}
 		}
